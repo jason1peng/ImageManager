@@ -51,7 +51,7 @@ public class ImageManager {
 	public static String getHashString(String input) {
     	String str = Base64.encodeToString((input).getBytes(), Base64.URL_SAFE);
     	if(str.contains("\n"))
-    		str = str.substring(0, str.indexOf("\n"));
+    		str = str.replace("\n", "");
     	
     	return str;
     }
