@@ -33,12 +33,14 @@ import android.widget.ImageView;
 public class ImageManager {
 	private volatile static ImageManager mInstance;
 	public static final String TAG = ImageManager.class.getSimpleName();
-	private static final boolean DEBUG = false;
-	private static final boolean DEBUG_URL = false;
+	private static final boolean DEBUG = true;
+	private static final boolean DEBUG_URL = true;
 	
 	private static final int IMAGE_MANAGER_CALLBACK = 100;
 	private static final int CONCURRENT_GET_IMAGE_TASK_COUNT = 2;
 	private Context mContext;
+	
+	private String mDownloadPath = null;
 	
 	private Stack<GetImageTask> mTaskStack = new Stack<GetImageTask>();
 	private ArrayList<GetImageTask> mRunningTask = new ArrayList<GetImageTask>(CONCURRENT_GET_IMAGE_TASK_COUNT);
@@ -46,6 +48,20 @@ public class ImageManager {
 	private ImageManager(Context c) {
 		mContext = c;
 		mCallbackList = new ArrayList<ImageManagerCallback>();
+	}
+	
+	public void setDownloadPath(String path) {
+		if(path != null && path.length() > 0) {
+			mDownloadPath = path;
+		}
+	}
+	
+	public String getDownloadPath() {
+		String path = mDownloadPath;
+		if(path == null) {
+			path = mContext.getCacheDir() + "/image";
+		}
+		return path;
 	}
 	
 	public static String getHashString(String input) {
@@ -308,7 +324,11 @@ public class ImageManager {
             }
         }
 
-    	File file = new File(mContext.getCacheDir()+"/images", cacheIndex);
+        File file;
+        if(mDownloadPath == null)
+        	file = new File(mContext.getCacheDir()+"/images", cacheIndex);
+        else
+        	file = new File(mDownloadPath, cacheIndex);
     	if (file.exists()) {
     		Bitmap bm = BitmapFactory.decodeFile(file.getAbsolutePath());
     		if (bm != null) {
@@ -332,7 +352,12 @@ public class ImageManager {
         	sHardBitmapCache.put(cacheIndex, bitmap);
         }
 
-		File targetPath = new File(mContext.getCacheDir()+"/images");
+        File targetPath;
+        if(mDownloadPath == null)
+        	targetPath = new File(mContext.getCacheDir()+"/images");
+        else
+        	targetPath = new File(mDownloadPath);
+        
     	if(!targetPath.exists())
     		targetPath.mkdir();
     	        
@@ -346,7 +371,7 @@ public class ImageManager {
 		}
     }
 	
-	 Handler mHandler = new Handler() {
+	private static Handler mHandler = new Handler() {
 		public void handleMessage(android.os.Message msg) {
 			switch (msg.what) {
 			case IMAGE_MANAGER_CALLBACK:
