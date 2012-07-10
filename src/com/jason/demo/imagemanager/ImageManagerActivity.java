@@ -4,10 +4,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import com.jason.demo.imagemanager.image.ImageAttribute;
-import com.jason.demo.imagemanager.image.ImageManager;
-import com.jason.demo.imagemanager.image.ImageManager.ImageManagerCallback;
 import com.jason.demo.imagemanager.imagesource.YoutubeImageSourceGetter;
+import com.jason.lib.imagemanager.image.ImageAttribute;
+import com.jason.lib.imagemanager.image.ImageManager;
+import com.jason.lib.imagemanager.image.ImageManager.ImageManagerCallback;
 
 import android.app.ListActivity;
 import android.content.BroadcastReceiver;

@@ -4,7 +4,7 @@
  * If not, see <http://www.gnu.org/licenses/gpl.txt>.
  */
 
-package com.jason.demo.imagemanager.image;
+package com.jason.lib.imagemanager.image;
 
 import java.io.File;
 import java.io.FileNotFoundException;

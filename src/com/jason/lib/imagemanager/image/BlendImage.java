@@ -1,4 +1,4 @@
-package com.jason.demo.imagemanager.image;
+package com.jason.lib.imagemanager.image;
 
 import android.content.Context;
 import android.graphics.Bitmap;
