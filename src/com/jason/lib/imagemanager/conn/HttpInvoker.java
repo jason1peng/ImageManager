@@ -1,4 +1,4 @@
-package com.jason.demo.imagemanager.imagesource;
+package com.jason.lib.imagemanager.conn;
 
 import java.io.BufferedReader;
 import java.io.FilterInputStream;

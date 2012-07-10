@@ -2,7 +2,7 @@ package com.jason.lib.imagemanager.image;
 
 import java.io.InputStream;
 
-import com.jason.demo.imagemanager.imagesource.HttpInvoker;
+import com.jason.lib.imagemanager.conn.HttpInvoker;
 
 import android.content.Context;
 import android.graphics.Bitmap;
