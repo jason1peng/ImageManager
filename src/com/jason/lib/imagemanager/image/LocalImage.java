@@ -1,8 +1,12 @@
 package com.jason.lib.imagemanager.image;
 
+import java.io.IOException;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.view.Display;
 import android.view.WindowManager;
 
@@ -32,7 +36,12 @@ public class LocalImage extends BaseImage{
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inJustDecodeBounds = true;
 
-        BitmapFactory.decodeFile(mPath, o);
+        String filename = null;
+		if (mPath.toString().startsWith("file://")) {
+			filename = mPath.toString().substring(7);
+		}
+		
+        BitmapFactory.decodeFile(filename, o);
 
         int scale = 1;
         if (o.outHeight > IMAGE_MAX_HEIGHT || o.outWidth > IMAGE_MAX_WIDTH) {
@@ -42,7 +51,44 @@ public class LocalImage extends BaseImage{
         //Decode with inSampleSize
         BitmapFactory.Options o2 = new BitmapFactory.Options();
         o2.inSampleSize = scale;
-        b = BitmapFactory.decodeFile(mPath, o2);
+        b = BitmapFactory.decodeFile(filename, o2);
+        
+        // Rotate to right direction
+        Matrix matrix = new Matrix();
+		float rotation = rotationForImage(filename);
+		if (rotation != 0f) {
+			matrix.preRotate(rotation);
+		}
+
+		int height = b.getHeight();
+		int width = b.getWidth();
+		b = Bitmap.createBitmap(b, 0, 0, width, height, matrix,
+				true);
 	    return b;
+	}
+	
+	public static int rotationForImage(String filename) {
+		int rotation = 0;
+		try {
+			ExifInterface exif = new ExifInterface(filename);
+			rotation = (int) exifOrientationToDegrees(exif.getAttributeInt(
+					ExifInterface.TAG_ORIENTATION,
+					ExifInterface.ORIENTATION_NORMAL));
+		} catch (IOException e) {
+
+			e.printStackTrace();
+		}
+		return rotation;
+	}
+
+	public static float exifOrientationToDegrees(int exifOrientation) {
+		if (exifOrientation == ExifInterface.ORIENTATION_ROTATE_90) {
+			return 90;
+		} else if (exifOrientation == ExifInterface.ORIENTATION_ROTATE_180) {
+			return 180;
+		} else if (exifOrientation == ExifInterface.ORIENTATION_ROTATE_270) {
+			return 270;
+		}
+		return 0;
 	}
 }

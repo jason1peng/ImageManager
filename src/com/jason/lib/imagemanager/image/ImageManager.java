@@ -33,8 +33,8 @@ import android.widget.ImageView;
 public class ImageManager {
 	private volatile static ImageManager mInstance;
 	public static final String TAG = ImageManager.class.getSimpleName();
-	private static final boolean DEBUG = true;
-	private static final boolean DEBUG_URL = true;
+	private static final boolean DEBUG = false;
+	private static final boolean DEBUG_URL = false;
 	
 	private static final int IMAGE_MANAGER_CALLBACK = 100;
 	private static final int CONCURRENT_GET_IMAGE_TASK_COUNT = 2;
@@ -204,8 +204,10 @@ public class ImageManager {
         protected void onPostExecute(Bitmap bitmap) {
 			decreaseTask();
 			if(bitmap == null) {
-				Log.e(TAG, "GetImageTask : image is null(url="+mUrl+
-						mAttr==null?"":" , attr=" + mAttr.getStringAttr()+").");
+				if(mAttr==null)
+					Log.e(TAG, "GetImageTask : image is null(url="+mUrl+")");
+				else
+					Log.e(TAG, "GetImageTask : image is null(url="+mUrl + " attr=" + mAttr.getStringAttr()+").");
 				return;
 			}
 			if(mAttr != null && mAttr.getView() != null && mSkipUpdateView == false) {
