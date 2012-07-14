@@ -60,10 +60,12 @@ public class LocalImage extends BaseImage{
 			matrix.preRotate(rotation);
 		}
 
-		int height = b.getHeight();
-		int width = b.getWidth();
-		b = Bitmap.createBitmap(b, 0, 0, width, height, matrix,
-				true);
+		if(b != null) {
+			int height = b.getHeight();
+			int width = b.getWidth();
+			b = Bitmap.createBitmap(b, 0, 0, width, height, matrix,
+					true);
+		}
 	    return b;
 	}
 	
