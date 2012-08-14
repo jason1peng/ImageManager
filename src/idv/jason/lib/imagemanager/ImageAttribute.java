@@ -1,4 +1,4 @@
-package com.jason.lib.imagemanager.image;
+package idv.jason.lib.imagemanager;
 
 import java.lang.ref.WeakReference;
 
@@ -65,5 +65,18 @@ public class ImageAttribute {
 			view = viewAttr.view.get();
 		}
 		return view;
+	}
+	
+	public boolean shouldApplyWithAnimation() {
+		if (viewAttr != null) {
+			return viewAttr.applyWithAnim;
+		}
+		return false;
+	}
+
+	public void setApplyWithAnimation(boolean value) {
+		if (viewAttr != null) {
+			viewAttr.applyWithAnim = value;
+		}
 	}
 }

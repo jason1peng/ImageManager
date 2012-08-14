@@ -1,4 +1,4 @@
-package com.jason.lib.imagemanager.image;
+package idv.jason.lib.imagemanager;
 
 import java.io.IOException;
 
@@ -14,6 +14,7 @@ public class LocalImage extends BaseImage{
 	private String mPath;
 	private int IMAGE_MAX_WIDTH;
 	private int IMAGE_MAX_HEIGHT;
+	private Bitmap mBitmap = null;
 	
 	public LocalImage(Context context, String path) {
 		mPath = path;
@@ -31,7 +32,10 @@ public class LocalImage extends BaseImage{
 	}
 	
 	public Bitmap getBitmap() {
-	    Bitmap b = null;
+		if (mBitmap != null) {
+			return mBitmap;
+		}
+		
         //Decode image size
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inJustDecodeBounds = true;
@@ -51,7 +55,7 @@ public class LocalImage extends BaseImage{
         //Decode with inSampleSize
         BitmapFactory.Options o2 = new BitmapFactory.Options();
         o2.inSampleSize = scale;
-        b = BitmapFactory.decodeFile(filename, o2);
+        mBitmap = BitmapFactory.decodeFile(filename, o2);
         
         // Rotate to right direction
         Matrix matrix = new Matrix();
@@ -60,13 +64,13 @@ public class LocalImage extends BaseImage{
 			matrix.preRotate(rotation);
 		}
 
-		if(b != null) {
-			int height = b.getHeight();
-			int width = b.getWidth();
-			b = Bitmap.createBitmap(b, 0, 0, width, height, matrix,
+		if(mBitmap != null) {
+			int height = mBitmap.getHeight();
+			int width = mBitmap.getWidth();
+			mBitmap = Bitmap.createBitmap(mBitmap, 0, 0, width, height, matrix,
 					true);
 		}
-	    return b;
+	    return mBitmap;
 	}
 	
 	public static int rotationForImage(String filename) {
@@ -92,5 +96,10 @@ public class LocalImage extends BaseImage{
 			return 270;
 		}
 		return 0;
+	}
+	
+	@Override
+	public void setBitmap(Bitmap bm) {
+		mBitmap = bm;
 	}
 }

@@ -1,10 +1,11 @@
-package com.jason.lib.imagemanager.image;
+package idv.jason.lib.imagemanager;
 
 import android.graphics.Bitmap;
 
 public class RoundCorner extends ImageDecorator {
 	private BaseImage mImage;
 	private int mPixels;
+	private Bitmap mBitmap = null;
 	
 	public RoundCorner(BaseImage image, int roundPixels) {
 		this.mImage = image;
@@ -13,9 +14,15 @@ public class RoundCorner extends ImageDecorator {
 
 	@Override
 	public Bitmap getBitmap() {
-		Bitmap bitmap = mImage.getBitmap();
-		if(bitmap != null)
-			bitmap = ImageUtil.getRoundedCornerBitmap(bitmap, mPixels);
-		return bitmap;
+		if(mBitmap == null) {
+			mBitmap = mImage.getBitmap();
+			mBitmap = ImageUtil.getRoundedCornerBitmap(mBitmap, mPixels);
+		}
+		return mBitmap;
+	}
+	
+	@Override
+	public void setBitmap(Bitmap bm) {
+		mBitmap = bm;
 	}
 }

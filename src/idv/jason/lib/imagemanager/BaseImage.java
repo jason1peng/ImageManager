@@ -1,4 +1,4 @@
-package com.jason.lib.imagemanager.image;
+package idv.jason.lib.imagemanager;
 
 import android.graphics.Bitmap;
 
@@ -6,4 +6,6 @@ public abstract class BaseImage {
 	public Bitmap getBitmap() {
 		return null;
 	}
+	
+	public abstract void setBitmap(Bitmap bm);
 }

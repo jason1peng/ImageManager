@@ -1,4 +1,4 @@
-package com.jason.lib.imagemanager.image;
+package idv.jason.lib.imagemanager;
 
 import java.io.File;
 import java.io.FileNotFoundException;

@@ -1,4 +1,4 @@
-package com.jason.lib.imagemanager.image;
+package idv.jason.lib.imagemanager;
 
 import android.graphics.Bitmap;
 
@@ -6,6 +6,7 @@ public class ResizeImage extends ImageDecorator{
 	private BaseImage mImage = null;
 	private int mWidth;
 	private int mHeight;
+	private Bitmap mBitmap = null;
 	
 	public ResizeImage(BaseImage image, int width, int height) {
 		mImage = image;
@@ -15,7 +16,16 @@ public class ResizeImage extends ImageDecorator{
 	
 	@Override
 	public Bitmap getBitmap() {
-		return ImageUtil.extractThumbnail(mImage.getBitmap(), mWidth, mHeight);
+		if(mBitmap == null) {
+			mBitmap = ImageUtil.extractThumbnail(mImage.getBitmap(), mWidth, mHeight);
+			return mBitmap;
+		} else {
+			return mBitmap;
+		}
 	}
-
+	
+	@Override
+	public void setBitmap(Bitmap bm) {
+		mBitmap = bm;
+	}
 }

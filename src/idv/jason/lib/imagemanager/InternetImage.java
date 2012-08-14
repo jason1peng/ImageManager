@@ -1,6 +1,4 @@
-package com.jason.lib.imagemanager.image;
-
-import java.io.InputStream;
+package idv.jason.lib.imagemanager;
 
 import com.jason.lib.imagemanager.conn.HttpInvoker;
 
@@ -12,6 +10,7 @@ public class InternetImage extends BaseImage{
 	public static final String TAG = InternetImage.class.getSimpleName();
 	private Context mContext;
 	private String mUrl;
+	private Bitmap mBitmap;
 	
 	public InternetImage(Context context, String url) {
 		mContext = context;
@@ -19,21 +18,26 @@ public class InternetImage extends BaseImage{
 	}
 	
 	public Bitmap getBitmap() {
-		Bitmap bitmap = null;
+		if (mBitmap != null) {
+			return mBitmap;
+		}
+		
 		try {
 			if (HttpInvoker.isNetworkAvailable(mContext)) {
-				bitmap = downloadBitmap(mUrl);
+				BitmapFactory.Options options = new BitmapFactory.Options();
+				options.inDither = false;
+				mBitmap = BitmapFactory.decodeStream(
+						HttpInvoker.getInputStreamFromUrl(mUrl), null, options);
 			}
 		} catch (Exception e) {
+			mBitmap = null;
 			e.printStackTrace();
 		}
-		return bitmap;
+		return mBitmap;
 	}
 	
-	public Bitmap downloadBitmap(String url) {
-		InputStream is = HttpInvoker.getInputStreamFromUrl(url);
-		if(is != null)
-			return BitmapFactory.decodeStream(new HttpInvoker.FlushedInputStream(is));
-        return null;
+	@Override
+	public void setBitmap(Bitmap bm) {
+		mBitmap = bm;
 	}
 }
