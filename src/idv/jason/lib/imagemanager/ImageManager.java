@@ -37,8 +37,14 @@ import android.widget.ImageView;
 public class ImageManager implements ImageFileBasicOperation{
 	private volatile static ImageManager mInstance;
 	public static final String TAG = ImageManager.class.getSimpleName();
-	private static final boolean DEBUG = false;
-	private static final boolean DEBUG_URL = false;
+	private static boolean DEBUG = false;
+	private static boolean DEBUG_URL = false;
+	private static boolean DEBUG_CACHE = false;
+	
+	public static final int DEBUG_FLAG_ALL 		= 1;
+	public static final int DEBUG_FLAG_NORMAL 	= 2;
+	public static final int DEBUG_FLAG_URL 		= 4;
+	public static final int DEBUG_FLAG_CACHE 	= 8;
 
 	private static final int IMAGE_MANAGER_CALLBACK = 100;
 	private static final int CONCURRENT_GET_IMAGE_TASK_COUNT = 2;
@@ -58,6 +64,17 @@ public class ImageManager implements ImageFileBasicOperation{
 		mDownloadedCallbackList = new ArrayList<ImageDownloadedCallback>();
 		mFactory = new ImageFactory();
 		mFactory.setImageBasicOperation(this);
+	}
+	
+	public void setDebugFlag(int flag) {
+		if((flag & DEBUG_FLAG_ALL) == DEBUG_FLAG_ALL)
+			DEBUG = DEBUG_URL = DEBUG_CACHE = true;
+		if((flag & DEBUG_FLAG_NORMAL) == DEBUG_FLAG_NORMAL)
+			DEBUG = true;
+		if((flag & DEBUG_FLAG_URL) == DEBUG_FLAG_URL)
+			DEBUG_URL = true;
+		if((flag & DEBUG_FLAG_CACHE) == DEBUG_FLAG_CACHE)
+			DEBUG_CACHE = true;
 	}
 	
 	public void setImageFactory(ImageFactory factory) {
@@ -174,12 +191,10 @@ public class ImageManager implements ImageFileBasicOperation{
 	private Bitmap getDrawableBitmap(Drawable drawable, ImageAttribute attr) {
 		String cacheIndex = getImageId(
 				Integer.toString(attr.viewAttr.defaultResId), attr);
-		if(cacheIndex.equals("MjEzMDgzNzYyNDE4MDE4MDAw")) {
-			Log.d(TAG, "special");
-		}
 		Bitmap bm = getBitmapFromCache(cacheIndex);
 		if (bm == null) {
-			Log.d(TAG, "generate");
+			if(DEBUG)
+				Log.d(TAG, "getDrawableBitmap : generate");
 			if (attr.thumbHeight == 0 || attr.thumbWidth == 0) {
 				bm = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_4444);
 				bm.eraseColor(Color.TRANSPARENT);
@@ -193,7 +208,8 @@ public class ImageManager implements ImageFileBasicOperation{
 			}
 			setBitmapToCache(bm, cacheIndex, false);
 		} else {
-			Log.d(TAG, "use cache");
+			if(DEBUG)
+				Log.d(TAG, "getDrawableBitmap : use cache");
 		}
 		return bm;
 	}
@@ -418,7 +434,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		synchronized (sHardBitmapCache) {
 			final Bitmap bitmap = sHardBitmapCache.get(cacheIndex);
 			if (bitmap != null) {
-				if (DEBUG)
+				if (DEBUG_CACHE)
 					Log.d(TAG, "hard cache");
 				// Bitmap found in hard cache
 				// Move element to first position, so that it is removed last
@@ -434,7 +450,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		if (bitmapReference != null) {
 			final Bitmap bitmap = bitmapReference.get();
 			if (bitmap != null) {
-				if (DEBUG)
+				if (DEBUG_CACHE)
 					Log.d(TAG, "soft cache");
 				// Bitmap found in soft cache
 				return bitmap;
@@ -452,7 +468,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		if (file.exists()) {
 			Bitmap bm = BitmapFactory.decodeFile(file.getAbsolutePath());
 			if (bm != null) {
-				if (DEBUG)
+				if (DEBUG_CACHE)
 					Log.d(TAG, "file cache");
 				synchronized (sHardBitmapCache) {
 					sHardBitmapCache.put(cacheIndex, bm);
