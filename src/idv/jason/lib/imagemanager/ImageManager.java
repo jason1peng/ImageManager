@@ -135,18 +135,29 @@ public class ImageManager implements ImageFileBasicOperation{
 		if (TextUtils.isEmpty(params) == false)
 			url = url + "&" + params;
 
-		Bitmap bitmap = getBitmapFromCache(id);
-		if (bitmap == null) {
+		Bitmap bitmap = null;
+		if(isImageExist(id)) {
+			// exist, determine how to load bitmap
+			if(attr != null && attr.shouldLoadFromThread()) {
+				synchronized (mTaskStack) {
+					getProcess(id, path, url, attr);
+				}
+				
+			} else {
+				removePotentialView(id, attr);
+				bitmap = getBitmapFromCache(id);
+				doneProcess(id, attr, bitmap);
+			}
+		}
+		else {
+			// need download
 			synchronized (mTaskStack) {
 				getProcess(id, path, url, attr);
 			}
-		} else {
-			removePotentialView(id, attr);
 			if (DEBUG_URL) {
 				Log.d(TAG, "The url already in done");
 				Log.d(TAG, "url:" + url);
 			}
-			doneProcess(id, attr, bitmap);
 		}
 
 		return bitmap;
@@ -179,6 +190,8 @@ public class ImageManager implements ImageFileBasicOperation{
 		if (attr != null) {
 			ImageView view = attr.getView();
 			if (view != null) {
+				if(attr.viewAttr != null)
+					view.setScaleType(attr.viewAttr.doneScaleType);
 				view.setImageBitmap(bitmap);
 				if (attr.viewAttr.backgroundResId != -1)
 					view.setBackgroundResource(attr.viewAttr.backgroundResId);
@@ -232,6 +245,8 @@ public class ImageManager implements ImageFileBasicOperation{
 						} else {
 							bm = getDrawableBitmap(drawable, attr);
 						}
+
+						view.setScaleType(attr.viewAttr.defaultScaleType);
 					}
 					DownloadedDrawable downloadDrawable = new DownloadedDrawable(
 							task, bm);
@@ -284,22 +299,24 @@ public class ImageManager implements ImageFileBasicOperation{
 
 		@Override
 		protected Bitmap doInBackground(Void... params) {
+			// origin bitmap without resize
+			String id = getImageId(mPath, null);
+			
 			BaseImage image = mFactory.getImage(mContext, mUrl, mAttr);
 			// check again before processing
 			Bitmap bitmap = getBitmapFromCache(mId);
 			if (bitmap == null) {
-				if (mAttr != null && mAttr.thumbWidth != 0
-						&& mAttr.thumbHeight != 0) {
-					// first check is there origin bitmap or not
-					String id = getImageId(mPath, null);
-					Bitmap originBitmap = getBitmapFromCache(id);
-					if (originBitmap != null) {
-						// already got origin bitmap, no need to download again
-						image.setBitmap(originBitmap);
-					}
-				}
-			} else
+				// first check is there origin bitmap or not
+				bitmap = getBitmapFromCache(id);
+			}
+			
+			if (bitmap != null)
 				image.setBitmap(bitmap);
+			else {
+				// for case origin not exist, and will resize later
+				if(mAttr != null && mAttr.thumbHeight != 0 && mAttr.thumbWidth != 0 && isImageExist(id) == false)
+					setBitmapToFile(image.getBitmap(), id);
+			}
 			image = mFactory.postProcessImage(mContext, mUrl, mAttr, image);
 			bitmap = image.getBitmap();
 
@@ -322,6 +339,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				else
 					Log.e(TAG, "GetImageTask : image is null(url=" + mUrl
 							+ " attr=" + mAttr.getStringAttr() + ").");
+				updateView(null);
 				return;
 			}
 			if (mAttr != null && mAttr.getView() != null
@@ -354,10 +372,19 @@ public class ImageManager implements ImageFileBasicOperation{
 			if (view != null) {
 				GetImageTask task = getTask(view);
 				if (task == this) {
-					if (mAttr.shouldApplyWithAnimation())
-						setImage(view, bitmap);
-					else
-						view.setImageBitmap(bitmap);
+					if(bitmap != null) {
+						if(mAttr.viewAttr != null)
+							view.setScaleType(mAttr.viewAttr.doneScaleType);
+						if (mAttr.shouldApplyWithAnimation())
+							setImage(view, bitmap);
+						else
+							view.setImageBitmap(bitmap);
+					} else {
+						if(mAttr.viewAttr != null && mAttr.viewAttr.failResId != -1) {
+							view.setScaleType(mAttr.viewAttr.failScaleType);
+							view.setImageResource(mAttr.viewAttr.failResId);
+						}
+					}
 				}
 			}
 		}
@@ -493,6 +520,8 @@ public class ImageManager implements ImageFileBasicOperation{
 	}
 	
 	public void setBitmapToFile(Bitmap bitmap, String cacheIndex) {
+		if(bitmap == null || isImageExist(cacheIndex))
+			return;
 		File targetPath;
 		if (mDownloadPath == null)
 			targetPath = new File(mContext.getCacheDir() + "/images");

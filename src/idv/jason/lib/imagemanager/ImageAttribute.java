@@ -3,6 +3,7 @@ package idv.jason.lib.imagemanager;
 import java.lang.ref.WeakReference;
 
 import android.widget.ImageView;
+import android.widget.ImageView.ScaleType;
 
 public class ImageAttribute {
 	public int thumbWidth = 0;
@@ -31,6 +32,15 @@ public class ImageAttribute {
 		if(view != null) {
 			viewAttr = new ViewAttribute();
 			viewAttr.view = new WeakReference<ImageView>(view);
+			if(attr.viewAttr != null) {
+				viewAttr.applyWithAnim = attr.viewAttr.applyWithAnim;
+				viewAttr.defaultScaleType = attr.viewAttr.defaultScaleType;
+				viewAttr.doneScaleType = attr.viewAttr.doneScaleType;
+				viewAttr.failScaleType = attr.viewAttr.failScaleType;
+				viewAttr.defaultResId = attr.viewAttr.defaultResId;
+				viewAttr.failResId = attr.viewAttr.failResId;
+				viewAttr.backgroundResId = attr.viewAttr.backgroundResId;
+			}
 		}
 	}
 	
@@ -53,9 +63,39 @@ public class ImageAttribute {
 		}
 	}
 	
+	public void setFailResId(int resId) {
+		if(viewAttr != null && viewAttr.view != null) {
+			viewAttr.failResId = resId;
+		}
+	}
+	
 	public void setBackground(int resId) {
 		if(viewAttr != null && viewAttr.view != null) {
 			viewAttr.backgroundResId = resId;
+		}
+	}
+	
+	public void setDefaultScaleType(ScaleType type) {
+		if(viewAttr != null && viewAttr.defaultResId != -1) {
+			viewAttr.defaultScaleType = type;
+		}
+	}
+	
+	public void setFailScaleType(ScaleType type) {
+		if(viewAttr != null && viewAttr.failResId != -1) {
+			viewAttr.failScaleType = type;
+		}
+	}
+	
+	public void setDoneScaleType(ScaleType type) {
+		if(viewAttr != null ) {
+			viewAttr.doneScaleType = type;
+		}
+	}
+	
+	public void setLoadFromThread(boolean loadFromThread) {
+		if(viewAttr != null ) {
+			viewAttr.loadFromThread = loadFromThread;
 		}
 	}
 	
@@ -78,5 +118,11 @@ public class ImageAttribute {
 		if (viewAttr != null) {
 			viewAttr.applyWithAnim = value;
 		}
+	}
+	
+	public boolean shouldLoadFromThread() {
+		if(viewAttr != null)
+			return viewAttr.loadFromThread;
+		return false;
 	}
 }
