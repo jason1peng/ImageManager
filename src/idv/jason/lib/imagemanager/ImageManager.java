@@ -299,33 +299,40 @@ public class ImageManager implements ImageFileBasicOperation{
 
 		@Override
 		protected Bitmap doInBackground(Void... params) {
-			// origin bitmap without resize
-			String id = getImageId(mPath, null);
-			
-			BaseImage image = mFactory.getImage(mContext, mUrl, mAttr);
-			// check again before processing
-			Bitmap bitmap = getBitmapFromCache(mId);
-			if (bitmap == null) {
-				// first check is there origin bitmap or not
-				bitmap = getBitmapFromCache(id);
+			Bitmap bitmap = null;
+			try {
+				// origin bitmap without resize
+				String id = getImageId(mPath, null);
+				
+				BaseImage image = mFactory.getImage(mContext, mUrl, mAttr);
+				// check again before processing
+				bitmap = getBitmapFromCache(mId);
+				if (bitmap == null) {
+					// first check is there origin bitmap or not
+					bitmap = getBitmapFromCache(id);
+				}
+				
+				if (bitmap != null)
+					image.setBitmap(bitmap);
+				else {
+					// for case origin not exist, and will resize later
+					if(mAttr != null && mAttr.thumbHeight != 0 && mAttr.thumbWidth != 0 && isImageExist(id) == false)
+						setBitmapToFile(image.getBitmap(), id);
+				}
+				image = mFactory.postProcessImage(mContext, mUrl, mAttr, image);
+				bitmap = image.getBitmap();
+	
+				if (DEBUG_URL) {
+					Log.d(TAG, "image process done");
+					Log.d(TAG, "url:" + mUrl);
+				}
+				if (bitmap != null)
+					setBitmapToCache(bitmap, mId, true);
+				
+			} catch (OutOfMemoryError e) {
+				Log.e(TAG, "OutOfMemoryError", e);
+				e.printStackTrace();
 			}
-			
-			if (bitmap != null)
-				image.setBitmap(bitmap);
-			else {
-				// for case origin not exist, and will resize later
-				if(mAttr != null && mAttr.thumbHeight != 0 && mAttr.thumbWidth != 0 && isImageExist(id) == false)
-					setBitmapToFile(image.getBitmap(), id);
-			}
-			image = mFactory.postProcessImage(mContext, mUrl, mAttr, image);
-			bitmap = image.getBitmap();
-
-			if (DEBUG_URL) {
-				Log.d(TAG, "image process done");
-				Log.d(TAG, "url:" + mUrl);
-			}
-			if (bitmap != null)
-				setBitmapToCache(bitmap, mId, true);
 			return bitmap;
 		}
 

@@ -31,7 +31,7 @@ public class LocalImage extends BaseImage{
 		IMAGE_MAX_HEIGHT = height;		
 	}
 	
-	public Bitmap getBitmap() {
+	public Bitmap getBitmap() throws OutOfMemoryError{
 		if (mBitmap != null) {
 			return mBitmap;
 		}
@@ -46,7 +46,6 @@ public class LocalImage extends BaseImage{
 		}
 		
         BitmapFactory.decodeFile(filename, o);
-
         int scale = 1;
         if (o.outHeight > IMAGE_MAX_HEIGHT || o.outWidth > IMAGE_MAX_WIDTH) {
             scale = (int)Math.pow(2, (int) Math.round(Math.log(Math.max(IMAGE_MAX_HEIGHT, IMAGE_MAX_WIDTH) / (double) Math.max(o.outHeight, o.outWidth)) / Math.log(0.5)));

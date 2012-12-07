@@ -17,21 +17,16 @@ public class InternetImage extends BaseImage{
 		mUrl = url;
 	}
 	
-	public Bitmap getBitmap() {
+	public Bitmap getBitmap() throws OutOfMemoryError{
 		if (mBitmap != null) {
 			return mBitmap;
 		}
 		
-		try {
-			if (HttpInvoker.isNetworkAvailable(mContext)) {
-				BitmapFactory.Options options = new BitmapFactory.Options();
-				options.inDither = false;
-				mBitmap = BitmapFactory.decodeStream(
-						HttpInvoker.getInputStreamFromUrl(mUrl), null, options);
-			}
-		} catch (Exception e) {
-			mBitmap = null;
-			e.printStackTrace();
+		if (HttpInvoker.isNetworkAvailable(mContext)) {
+			BitmapFactory.Options options = new BitmapFactory.Options();
+			options.inDither = false;
+			mBitmap = BitmapFactory.decodeStream(
+					HttpInvoker.getInputStreamFromUrl(mUrl), null, options);
 		}
 		return mBitmap;
 	}
