@@ -302,7 +302,11 @@ public class ImageManager implements ImageFileBasicOperation{
 			Bitmap bitmap = null;
 			try {
 				// origin bitmap without resize
-				String id = getImageId(mPath, null);
+				String id = null;
+				if(mPath == null)
+					id = mId;
+				else
+					id = getImageId(mPath, null);
 				
 				BaseImage image = mFactory.getImage(mContext, mUrl, mAttr);
 				// check again before processing
