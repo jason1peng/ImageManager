@@ -24,6 +24,7 @@ public class InternetImage extends BaseImage{
 		
 		if (HttpInvoker.isNetworkAvailable(mContext)) {
 			BitmapFactory.Options options = new BitmapFactory.Options();
+			options.inPreferredConfig = Bitmap.Config.ARGB_8888;
 			options.inDither = false;
 			mBitmap = BitmapFactory.decodeStream(
 					HttpInvoker.getInputStreamFromUrl(mUrl), null, options);
