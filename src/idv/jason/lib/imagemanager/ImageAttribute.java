@@ -13,6 +13,8 @@ public class ImageAttribute {
 	
 	public int blendResId = 0;
 	
+	public boolean hasAlpha = false;
+	
 	public ImageAttribute() {
 		
 	}
@@ -29,6 +31,7 @@ public class ImageAttribute {
 		this.thumbWidth = attr.thumbWidth;
 		this.roundPixels = attr.roundPixels;
 		this.blendResId = attr.blendResId;
+		this.hasAlpha = attr.hasAlpha;
 		if(view != null) {
 			viewAttr = new ViewAttribute();
 			viewAttr.view = new WeakReference<ImageView>(view);
@@ -51,6 +54,7 @@ public class ImageAttribute {
 		builder.append(thumbHeight);
 		builder.append(roundPixels);
 		builder.append(blendResId);
+		builder.append(hasAlpha);
 		
 		return builder.toString();
 	}

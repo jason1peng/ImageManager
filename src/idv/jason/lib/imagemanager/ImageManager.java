@@ -219,7 +219,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				Canvas canvas = new Canvas(bm);
 				drawable.draw(canvas);
 			}
-			setBitmapToCache(bm, cacheIndex, false);
+			setBitmapToCache(bm, cacheIndex, false, false);
 		} else {
 			if(DEBUG)
 				Log.d(TAG, "getDrawableBitmap : use cache");
@@ -321,7 +321,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				else {
 					// for case origin not exist, and will resize later
 					if(mAttr != null && mAttr.thumbHeight != 0 && mAttr.thumbWidth != 0 && isImageExist(id) == false)
-						setBitmapToFile(image.getBitmap(), id);
+						setBitmapToFile(image.getBitmap(), id, mAttr.hasAlpha);
 				}
 				image = mFactory.postProcessImage(mContext, mUrl, mAttr, image);
 				bitmap = image.getBitmap();
@@ -331,7 +331,7 @@ public class ImageManager implements ImageFileBasicOperation{
 					Log.d(TAG, "url:" + mUrl);
 				}
 				if (bitmap != null)
-					setBitmapToCache(bitmap, mId, true);
+					setBitmapToCache(bitmap, mId, true, mAttr.hasAlpha);
 				
 			} catch (OutOfMemoryError e) {
 				Log.e(TAG, "OutOfMemoryError", e);
@@ -517,7 +517,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		return null;
 	}
 
-	private void setBitmapToCache(Bitmap bitmap, String cacheIndex, boolean savefile) {
+	private void setBitmapToCache(Bitmap bitmap, String cacheIndex, boolean savefile, boolean hasAlpha) {
 
 		if (DEBUG) {
 			Log.d(TAG, "add filename:" + cacheIndex);
@@ -527,10 +527,10 @@ public class ImageManager implements ImageFileBasicOperation{
 		}
 
 		if(savefile)
-			setBitmapToFile(bitmap, cacheIndex);
+			setBitmapToFile(bitmap, cacheIndex, hasAlpha);
 	}
 	
-	public void setBitmapToFile(Bitmap bitmap, String cacheIndex) {
+	public void setBitmapToFile(Bitmap bitmap, String cacheIndex, boolean hasAlpha) {
 		if(bitmap == null || isImageExist(cacheIndex))
 			return;
 		File targetPath;
@@ -546,7 +546,10 @@ public class ImageManager implements ImageFileBasicOperation{
 		FileOutputStream out;
 		try {
 			out = new FileOutputStream(file);
-			bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+			if(hasAlpha)
+				bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+			else
+				bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
 		} catch (FileNotFoundException e) {
 			Log.e(TAG, e.getMessage());
 		}
