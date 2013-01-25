@@ -5,8 +5,6 @@ import com.jason.lib.imagemanager.conn.HttpInvoker;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.view.Display;
-import android.view.WindowManager;
 
 public class InternetImage extends BaseImage {
 	public static final String TAG = InternetImage.class.getSimpleName();

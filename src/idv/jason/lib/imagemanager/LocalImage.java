@@ -7,8 +7,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
-import android.view.Display;
-import android.view.WindowManager;
 
 public class LocalImage extends BaseImage{
 	private String mPath;
