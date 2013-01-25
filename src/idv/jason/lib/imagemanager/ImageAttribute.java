@@ -6,12 +6,13 @@ import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 
 public class ImageAttribute {
-	public int thumbWidth = 0;
-	public int thumbHeight = 0;	
+	public int maxWidth = 0;
+	public int maxHeight = 0;	
 	
 	public int roundPixels = 0;
-	
 	public int blendResId = 0;
+	
+	public int blurRadious = 0;
 	
 	public boolean hasAlpha = false;
 	
@@ -27,11 +28,12 @@ public class ImageAttribute {
 	}
 	
 	public ImageAttribute(ImageAttribute attr, ImageView view) {
-		this.thumbHeight = attr.thumbHeight;
-		this.thumbWidth = attr.thumbWidth;
+		this.maxHeight = attr.maxHeight;
+		this.maxWidth = attr.maxWidth;
 		this.roundPixels = attr.roundPixels;
 		this.blendResId = attr.blendResId;
 		this.hasAlpha = attr.hasAlpha;
+		this.blurRadious = attr.blurRadious;
 		if(view != null) {
 			viewAttr = new ViewAttribute();
 			viewAttr.view = new WeakReference<ImageView>(view);
@@ -50,11 +52,12 @@ public class ImageAttribute {
 	public String getStringAttr() {
 		StringBuilder builder = new StringBuilder();
 		
-		builder.append(thumbWidth);
-		builder.append(thumbHeight);
+		builder.append(maxWidth);
+		builder.append(maxHeight);
 		builder.append(roundPixels);
 		builder.append(blendResId);
 		builder.append(hasAlpha);
+		builder.append(blurRadious);
 		
 		return builder.toString();
 	}

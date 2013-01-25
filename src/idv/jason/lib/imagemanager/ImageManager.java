@@ -145,7 +145,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				
 			} else {
 				removePotentialView(id, attr);
-				bitmap = getBitmapFromCache(id);
+				bitmap = getBitmapFromCache(id, attr);
 				doneProcess(id, attr, bitmap);
 			}
 		}
@@ -170,7 +170,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		resetPurgeTimer();
 		String id = getImageId(url, attr);
 
-		Bitmap bitmap = getBitmapFromCache(id);
+		Bitmap bitmap = getBitmapFromCache(id, attr);
 		if (bitmap == null) {
 			synchronized (mTaskStack) {
 				getProcess(id, null, url, attr);
@@ -204,16 +204,16 @@ public class ImageManager implements ImageFileBasicOperation{
 	private Bitmap getDrawableBitmap(Drawable drawable, ImageAttribute attr) {
 		String cacheIndex = getImageId(
 				Integer.toString(attr.viewAttr.defaultResId), attr);
-		Bitmap bm = getBitmapFromCache(cacheIndex);
+		Bitmap bm = getBitmapFromCache(cacheIndex, attr);
 		if (bm == null) {
 			if(DEBUG)
 				Log.d(TAG, "getDrawableBitmap : generate");
-			if (attr.thumbHeight == 0 || attr.thumbWidth == 0) {
+			if (attr.maxHeight == 0 || attr.maxWidth == 0) {
 				bm = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_4444);
 				bm.eraseColor(Color.TRANSPARENT);
 			} else {
-				drawable.setBounds(0, 0, attr.thumbWidth, attr.thumbHeight);
-				bm = Bitmap.createBitmap(attr.thumbWidth, attr.thumbHeight,
+				drawable.setBounds(0, 0, attr.maxWidth, attr.maxHeight);
+				bm = Bitmap.createBitmap(attr.maxWidth, attr.maxHeight,
 						Bitmap.Config.ARGB_8888);
 				bm.eraseColor(Color.TRANSPARENT);
 				Canvas canvas = new Canvas(bm);
@@ -310,17 +310,17 @@ public class ImageManager implements ImageFileBasicOperation{
 				
 				BaseImage image = mFactory.getImage(mContext, mUrl, mAttr);
 				// check again before processing
-				bitmap = getBitmapFromCache(mId);
+				bitmap = getBitmapFromCache(mId, mAttr);
 				if (bitmap == null) {
 					// first check is there origin bitmap or not
-					bitmap = getBitmapFromCache(id);
+					bitmap = getBitmapFromCache(id, mAttr);
 				}
 				
 				if (bitmap != null)
 					image.setBitmap(bitmap);
 				else {
 					// for case origin not exist, and will resize later
-					if(mAttr != null && mAttr.thumbHeight != 0 && mAttr.thumbWidth != 0 && isImageExist(id) == false)
+					if(mAttr != null && mAttr.maxHeight != 0 && mAttr.maxWidth != 0)
 						setBitmapToFile(image.getBitmap(), id, mAttr.hasAlpha);
 				}
 				image = mFactory.postProcessImage(mContext, mUrl, mAttr, image);
@@ -335,7 +335,6 @@ public class ImageManager implements ImageFileBasicOperation{
 				
 			} catch (OutOfMemoryError e) {
 				Log.e(TAG, "OutOfMemoryError", e);
-				e.printStackTrace();
 			}
 			return bitmap;
 		}
@@ -345,11 +344,13 @@ public class ImageManager implements ImageFileBasicOperation{
 			decreaseTask();
 
 			if (bitmap == null) {
-				if (mAttr == null)
-					Log.e(TAG, "GetImageTask : image is null(url=" + mUrl + ")");
-				else
-					Log.e(TAG, "GetImageTask : image is null(url=" + mUrl
-							+ " attr=" + mAttr.getStringAttr() + ").");
+				if(DEBUG) {
+					if (mAttr == null)
+						Log.e(TAG, "GetImageTask : image is null(url=" + mUrl + ")");
+					else
+						Log.e(TAG, "GetImageTask : image is null(url=" + mUrl
+								+ " attr=" + mAttr.getStringAttr() + ").");
+				}
 				updateView(null);
 				return;
 			}
@@ -466,7 +467,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		}
 	}
 
-	private Bitmap getBitmapFromCache(String cacheIndex) {
+	private Bitmap getBitmapFromCache(String cacheIndex, ImageAttribute attr) {
 
 		// First try the hard reference cache
 		synchronized (sHardBitmapCache) {
@@ -482,36 +483,29 @@ public class ImageManager implements ImageFileBasicOperation{
 			}
 		}
 
-		// Then try the soft reference cache
-		SoftReference<Bitmap> bitmapReference = sSoftBitmapCache
-				.get(cacheIndex);
-		if (bitmapReference != null) {
-			final Bitmap bitmap = bitmapReference.get();
-			if (bitmap != null) {
-				if (DEBUG_CACHE)
-					Log.d(TAG, "soft cache");
-				// Bitmap found in soft cache
-				return bitmap;
-			} else {
-				// Soft reference has been Garbage Collected
-				sSoftBitmapCache.remove(cacheIndex);
-			}
-		}
-
 		File file;
 		if (mDownloadPath == null)
 			file = new File(mContext.getCacheDir() + "/images", cacheIndex);
 		else
 			file = new File(mDownloadPath, cacheIndex);
 		if (file.exists()) {
-			Bitmap bm = BitmapFactory.decodeFile(file.getAbsolutePath());
-			if (bm != null) {
-				if (DEBUG_CACHE)
-					Log.d(TAG, "file cache");
-				synchronized (sHardBitmapCache) {
-					sHardBitmapCache.put(cacheIndex, bm);
+			LocalImage image = null;
+			if(attr != null && attr.maxHeight != 0 && attr.maxWidth != 0)
+				image = new LocalImage(mContext, file.getAbsolutePath(), attr.maxWidth, attr.maxHeight);
+			else
+				image = new LocalImage(mContext, file.getAbsolutePath());
+			try {
+				Bitmap bm = image.getBitmap();
+				if (bm != null) {
+					if (DEBUG_CACHE)
+						Log.d(TAG, "file cache");
+					synchronized (sHardBitmapCache) {
+						sHardBitmapCache.put(cacheIndex, bm);
+					}
+					return bm;
 				}
-				return bm;
+			} catch (OutOfMemoryError e) {
+				Log.e(TAG, "OutOfMemoryError", e);
 			}
 		}
 		return null;
@@ -547,9 +541,9 @@ public class ImageManager implements ImageFileBasicOperation{
 		try {
 			out = new FileOutputStream(file);
 			if(hasAlpha)
-				bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+				bitmap.compress(Bitmap.CompressFormat.PNG, 90, out);
 			else
-				bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+				bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
 		} catch (FileNotFoundException e) {
 			Log.e(TAG, e.getMessage());
 		}
@@ -655,29 +649,28 @@ public class ImageManager implements ImageFileBasicOperation{
 		}
 	}
 
-	private static final int HARD_CACHE_CAPACITY = 3;
+	private static final int HARD_CACHE_CAPACITY = 10 * 1024 * 1024;
 	private static final int DELAY_BEFORE_PURGE = 10 * 1000; // in milliseconds
 
 	// Hard cache, with a fixed maximum capacity and a life duration
-	private final HashMap<String, Bitmap> sHardBitmapCache = new LinkedHashMap<String, Bitmap>(
-			HARD_CACHE_CAPACITY / 2, 0.75f, true) {
-		private static final long serialVersionUID = 8808576849847802011L;
+	private final LruCache<String, Bitmap> sHardBitmapCache = new LruCache<String, Bitmap>(
+			HARD_CACHE_CAPACITY) {
+		protected int sizeOf(String key, Bitmap value) {
+			int size = (value.getRowBytes() * value.getHeight());
+			if (DEBUG)
+				Log.d(TAG, "current size:" + size + " - " + this.size() + "/"
+						+ HARD_CACHE_CAPACITY);
+			return size;
 
-		@Override
-		protected boolean removeEldestEntry(
-				LinkedHashMap.Entry<String, Bitmap> eldest) {
-			if (size() > HARD_CACHE_CAPACITY) {
-				// Entries push-out of hard reference cache are transferred to
-				// soft reference cache
-				sSoftBitmapCache.put(eldest.getKey(),
-						new SoftReference<Bitmap>(eldest.getValue()));
-				return true;
-			} else
-				return false;
+		}
+
+		protected void entryRemoved(boolean evicted, String key,
+				Bitmap oldValue, Bitmap newValue) {
+			if (DEBUG)
+				Log.d(TAG, "entryRemoved:" + this.size() + "/"
+						+ HARD_CACHE_CAPACITY);
 		}
 	};
-	private final static ConcurrentHashMap<String, SoftReference<Bitmap>> sSoftBitmapCache = new ConcurrentHashMap<String, SoftReference<Bitmap>>(
-			HARD_CACHE_CAPACITY / 2);
 
 	private final Handler purgeHandler = new Handler();
 	private final Runnable purger = new Runnable() {
@@ -688,8 +681,7 @@ public class ImageManager implements ImageFileBasicOperation{
 	};
 
 	public void clearCache() {
-		sHardBitmapCache.clear();
-		sSoftBitmapCache.clear();
+		sHardBitmapCache.evictAll();
 	}
 
 	private void resetPurgeTimer() {

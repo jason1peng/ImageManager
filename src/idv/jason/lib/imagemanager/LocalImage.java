@@ -12,49 +12,44 @@ import android.view.WindowManager;
 
 public class LocalImage extends BaseImage{
 	private String mPath;
-	private int IMAGE_MAX_WIDTH;
-	private int IMAGE_MAX_HEIGHT;
+	private int IMAGE_MAX_WIDTH = 0;
+	private int IMAGE_MAX_HEIGHT = 0;
 	private Bitmap mBitmap = null;
 	
 	public LocalImage(Context context, String path) {
 		mPath = path;
-
-		Display display = ((WindowManager) context
-				.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-		IMAGE_MAX_WIDTH = display.getWidth();
-		IMAGE_MAX_HEIGHT = display.getHeight();
 	}
 	
 	public LocalImage(Context context, String path, int width, int height) {
 		mPath = path;
-		IMAGE_MAX_WIDTH = width;
-		IMAGE_MAX_HEIGHT = height;		
+		IMAGE_MAX_WIDTH = 1024;
+		IMAGE_MAX_HEIGHT = 1024;		
 	}
 	
 	public Bitmap getBitmap() throws OutOfMemoryError{
 		if (mBitmap != null) {
 			return mBitmap;
 		}
-		
+
+        String filename = null;	
         //Decode image size
         BitmapFactory.Options o = new BitmapFactory.Options();
-        o.inJustDecodeBounds = true;
-
-        String filename = null;
-		if (mPath.toString().startsWith("file://")) {
-			filename = mPath.toString().substring(7);
-		}
-		
-        BitmapFactory.decodeFile(filename, o);
-        int scale = 1;
-        if (o.outHeight > IMAGE_MAX_HEIGHT || o.outWidth > IMAGE_MAX_WIDTH) {
-            scale = (int)Math.pow(2, (int) Math.round(Math.log(Math.max(IMAGE_MAX_HEIGHT, IMAGE_MAX_WIDTH) / (double) Math.max(o.outHeight, o.outWidth)) / Math.log(0.5)));
+        if(IMAGE_MAX_WIDTH != 0 && IMAGE_MAX_HEIGHT != 0) {
+	        o.inJustDecodeBounds = true;
+	
+			if (mPath.toString().startsWith("file://")) {
+				filename = mPath.toString().substring(7);
+			} else {
+				filename = mPath;
+			}
+			
+	        BitmapFactory.decodeFile(filename, o);
+	
+	        //Decode with inSampleSize
+	        o.inJustDecodeBounds = false;
+	        o.inSampleSize = ImageUtil.calculateInSampleSize(o, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT);
+	        mBitmap = BitmapFactory.decodeFile(filename, o);
         }
-
-        //Decode with inSampleSize
-        BitmapFactory.Options o2 = new BitmapFactory.Options();
-        o2.inSampleSize = scale;
-        mBitmap = BitmapFactory.decodeFile(filename, o2);
         
         // Rotate to right direction
         Matrix matrix = new Matrix();

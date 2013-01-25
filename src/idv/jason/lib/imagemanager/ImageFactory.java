@@ -23,13 +23,16 @@ public class ImageFactory {
 		if(url.contains("file://"))
 			isLocal = true;
 		if(isLocal) {
-			if(attr != null && attr.thumbHeight != 0 && attr.thumbWidth != 0)
-				image = new LocalImage(context, url, attr.thumbWidth, attr.thumbHeight);
+			if(attr != null && attr.maxHeight != 0 && attr.maxWidth != 0)
+				image = new LocalImage(context, url, attr.maxWidth, attr.maxHeight);
 			else
 				image = new LocalImage(context, url);
 		}
 		else if(url != null) {
-			image = new InternetImage(context, url);
+			if(attr != null)
+				image = new InternetImage(context, url, attr.maxWidth, attr.maxHeight);
+			else
+				image = new InternetImage(context, url);
 		}
 		return image;
 	}
@@ -37,10 +40,10 @@ public class ImageFactory {
 	public BaseImage postProcessImage(Context context, String url,
 			ImageAttribute attr, BaseImage image) {
 		if (image != null && attr != null) {
-			if (attr.thumbHeight != 0 && attr.thumbWidth != 0) {
+			if (attr.maxHeight != 0 && attr.maxWidth != 0) {
 				// we have resized image when decode from local path
-				image = new ResizeImage(image, attr.thumbWidth,
-						attr.thumbHeight);
+				image = new ResizeImage(image, attr.maxWidth,
+						attr.maxHeight);
 			}
 
 			if (attr.blendResId != 0) {
@@ -49,6 +52,10 @@ public class ImageFactory {
 
 			if (attr.roundPixels != 0) {
 				image = new RoundCorner(image, attr.roundPixels);
+			}
+			
+			if(attr.blurRadious != 0) {
+				image = new Blur(image, attr.blurRadious);
 			}
 		}
 		return image;
