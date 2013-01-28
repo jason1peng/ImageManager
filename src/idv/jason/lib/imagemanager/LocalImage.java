@@ -33,20 +33,12 @@ public class LocalImage extends BaseImage{
 		if (mBitmap != null) {
 			return mBitmap;
 		}
-
-        String filename = null;	
         //Decode image size
         BitmapFactory.Options options = new BitmapFactory.Options();
         if(IMAGE_MAX_WIDTH != 0 && IMAGE_MAX_HEIGHT != 0) {
 	        options.inJustDecodeBounds = true;
-	
-			if (mPath.toString().startsWith("file://")) {
-				filename = mPath.toString().substring(7);
-			} else {
-				filename = mPath;
-			}
 			
-	        BitmapFactory.decodeFile(filename, options);
+	        BitmapFactory.decodeFile(mPath, options);
 	
 	        //Decode with inSampleSize
 	        options.inJustDecodeBounds = false;
@@ -55,12 +47,12 @@ public class LocalImage extends BaseImage{
 	        if(mHighQuality == false)
 				options.inPreferredConfig = Bitmap.Config.RGB_565;
 	        options.inSampleSize = ImageUtil.calculateInSampleSize(options, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT);
-	        mBitmap = BitmapFactory.decodeFile(filename, options);
+	        mBitmap = BitmapFactory.decodeFile(mPath, options);
         }
         
         // Rotate to right direction
         Matrix matrix = new Matrix();
-		float rotation = rotationForImage(filename);
+		float rotation = rotationForImage(mPath);
 		if (rotation != 0f) {
 			matrix.preRotate(rotation);
 		}

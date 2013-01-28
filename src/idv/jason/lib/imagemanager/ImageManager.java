@@ -45,7 +45,7 @@ public class ImageManager implements ImageFileBasicOperation{
 	private static final int CONCURRENT_GET_IMAGE_TASK_COUNT = 2;
 	private Context mContext;
 
-	private String mDownloadPath = null;
+	private File mDownloadPath = null;
 	
 	private ImageFactory mFactory;
 	
@@ -61,6 +61,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		mDownloadedCallbackList = new ArrayList<ImageDownloadedCallback>();
 		mFactory = new ImageFactory();
 		mFactory.setImageBasicOperation(this);
+		setDownloadPath(null);
 	}
 	
 	public void setDebugFlag(int flag) {
@@ -81,16 +82,17 @@ public class ImageManager implements ImageFileBasicOperation{
 
 	public void setDownloadPath(String path) {
 		if (path != null && path.length() > 0) {
-			mDownloadPath = path;
+			mDownloadPath = new File(path);
+		} else {
+			mDownloadPath = new File(mContext.getCacheDir() + "/images");
 		}
+
+		if (!mDownloadPath.exists())
+			mDownloadPath.mkdir();
 	}
 
 	public String getDownloadPath() {
-		String path = mDownloadPath;
-		if (path == null) {
-			path = mContext.getCacheDir() + "/image";
-		}
-		return path;
+		return mDownloadPath.getAbsolutePath();
 	}
 
 	public static String getHashString(String input) {
@@ -474,11 +476,7 @@ public class ImageManager implements ImageFileBasicOperation{
 			}
 		}
 
-		File file;
-		if (mDownloadPath == null)
-			file = new File(mContext.getCacheDir() + "/images", cacheIndex);
-		else
-			file = new File(mDownloadPath, cacheIndex);
+		File file = new File(mDownloadPath, cacheIndex);
 		if (file.exists()) {
 			LocalImage image = null;
 			if(attr != null && attr.maxHeight != 0 && attr.maxWidth != 0) {
@@ -521,16 +519,8 @@ public class ImageManager implements ImageFileBasicOperation{
 	public void setBitmapToFile(Bitmap bitmap, String cacheIndex, boolean hasAlpha) {
 		if(bitmap == null)
 			return;
-		File targetPath;
-		if (mDownloadPath == null)
-			targetPath = new File(mContext.getCacheDir() + "/images");
-		else
-			targetPath = new File(mDownloadPath);
 
-		if (!targetPath.exists())
-			targetPath.mkdir();
-
-		File file = new File(targetPath, cacheIndex);
+		File file = new File(mDownloadPath, cacheIndex);
 		FileOutputStream out;
 		try {
 			out = new FileOutputStream(file);
@@ -543,21 +533,12 @@ public class ImageManager implements ImageFileBasicOperation{
 		}
 	}
 	
-	public boolean isImageExist(String cacheIndex) {
-		File file = null;
-		if(mDownloadPath == null) {
-			file = new File(mContext.getCacheDir() + "/images", cacheIndex);
-		} else {
-			file = new File(mDownloadPath, cacheIndex);
-		}
-		return file.exists();
+	public boolean isImageExist(String id) {
+		return new File(mDownloadPath, id).exists();
 	}
 	
 	public String getImagePath(String id) {
-		if(mDownloadPath == null)
-			return "file://" + mContext.getCacheDir() + "/images/" + id;
-		else
-			return "file://" + mDownloadPath + "/" + id;
+		return new File(mDownloadPath, id).getAbsolutePath();
 	}
 
 	private static Handler mHandler = new Handler() {
