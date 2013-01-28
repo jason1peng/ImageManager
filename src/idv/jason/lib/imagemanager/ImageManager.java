@@ -33,7 +33,6 @@ public class ImageManager implements ImageFileBasicOperation{
 	private volatile static ImageManager mInstance;
 	public static final String TAG = ImageManager.class.getSimpleName();
 	private static boolean DEBUG = false;
-	private static boolean DEBUG_URL = false;
 	private static boolean DEBUG_CACHE = false;
 	
 	public static final int DEBUG_FLAG_ALL 		= 1;
@@ -66,11 +65,9 @@ public class ImageManager implements ImageFileBasicOperation{
 	
 	public void setDebugFlag(int flag) {
 		if((flag & DEBUG_FLAG_ALL) == DEBUG_FLAG_ALL)
-			DEBUG = DEBUG_URL = DEBUG_CACHE = true;
+			DEBUG = DEBUG_CACHE = true;
 		if((flag & DEBUG_FLAG_NORMAL) == DEBUG_FLAG_NORMAL)
 			DEBUG = true;
-		if((flag & DEBUG_FLAG_URL) == DEBUG_FLAG_URL)
-			DEBUG_URL = true;
 		if((flag & DEBUG_FLAG_CACHE) == DEBUG_FLAG_CACHE)
 			DEBUG_CACHE = true;
 	}
@@ -164,10 +161,6 @@ public class ImageManager implements ImageFileBasicOperation{
 			synchronized (mTaskStack) {
 				getProcess(id, path, url, attr);
 			}
-			if (DEBUG_URL) {
-				Log.d(TAG, "The url already in done");
-				Log.d(TAG, "url:" + url);
-			}
 		}
 		return bitmap;
 	}
@@ -242,20 +235,8 @@ public class ImageManager implements ImageFileBasicOperation{
 			if (mRunningTask.size() < CONCURRENT_GET_IMAGE_TASK_COUNT) {
 				mRunningTask.add(task);
 				task.execute();
-				if (DEBUG_URL) {
-					Log.d(TAG, "start get image task, running task count="
-							+ mRunningTask.size());
-					Log.d(TAG, "url:" + url);
-				}
 			} else {
 				mTaskStack.push(task);
-				if (DEBUG_URL) {
-					Log.d(TAG,
-							"add to stack, running task count="
-									+ mRunningTask.size() + " pending:"
-									+ mTaskStack.size());
-					Log.d(TAG, "url:" + url);
-				}
 			}
 		}
 	}
@@ -308,8 +289,8 @@ public class ImageManager implements ImageFileBasicOperation{
 				}
 								
 				// optional: save origin file to seed up the modification process for the same image
-				if(mSaveOrigin && diskBitmap!= null && originBitmap != null) {
-					setBitmapToFile(image.getBitmap(), id, mAttr==null?false:mAttr.hasAlpha);
+				if(mSaveOrigin && diskBitmap == null && originBitmap == null && mAttr != null) {
+					setBitmapToFile(image.getBitmap(), id, mAttr.hasAlpha);
 				}
 				
 				// process attribute setting
@@ -318,14 +299,7 @@ public class ImageManager implements ImageFileBasicOperation{
 					bitmap = image.getBitmap();
 				}
 	
-				setBitmapToCache(bitmap, mId, true, mAttr==null?false:mAttr.hasAlpha);			
-
-				if (DEBUG_URL) {
-					Log.d(TAG, "image process done");
-					Log.d(TAG, "url:" + mUrl);
-				}
-				
-				
+				setBitmapToCache(bitmap, mId, true, mAttr==null?false:mAttr.hasAlpha);
 			} catch (OutOfMemoryError e) {
 				Log.e(TAG, "OutOfMemoryError", e);
 			}
@@ -461,13 +435,12 @@ public class ImageManager implements ImageFileBasicOperation{
 	}
 
 	private Bitmap getBitmapFromCache(String cacheIndex, ImageAttribute attr) {
-
 		// First try the hard reference cache
 		synchronized (sHardBitmapCache) {
 			final Bitmap bitmap = sHardBitmapCache.get(cacheIndex);
 			if (bitmap != null) {
 				if (DEBUG_CACHE)
-					Log.d(TAG, "hard cache");
+					Log.d(TAG, "memory cache");
 				// Bitmap found in hard cache
 				// Move element to first position, so that it is removed last
 				sHardBitmapCache.remove(cacheIndex);
@@ -521,15 +494,20 @@ public class ImageManager implements ImageFileBasicOperation{
 			return;
 
 		File file = new File(mDownloadPath, cacheIndex);
-		FileOutputStream out;
-		try {
-			out = new FileOutputStream(file);
-			if(hasAlpha)
-				bitmap.compress(Bitmap.CompressFormat.PNG, 90, out);
-			else
-				bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
-		} catch (FileNotFoundException e) {
-			Log.e(TAG, e.getMessage());
+		if(file.exists()) {
+			if(DEBUG)
+				Log.d(TAG, "file exist, ignore save");
+		} else {
+			FileOutputStream out;
+				try {
+					out = new FileOutputStream(file);
+					if(hasAlpha)
+						bitmap.compress(Bitmap.CompressFormat.PNG, 90, out);
+					else
+						bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+				} catch (FileNotFoundException e) {
+					Log.e(TAG, e.getMessage());
+			}
 		}
 	}
 	
