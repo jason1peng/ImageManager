@@ -15,6 +15,7 @@ public class ImageAttribute {
 	public int blurRadious = 0;
 	
 	public boolean hasAlpha = false;
+	public boolean highQuality = false;
 	
 	public ImageAttribute() {
 		
@@ -33,6 +34,7 @@ public class ImageAttribute {
 		this.roundPixels = attr.roundPixels;
 		this.blendResId = attr.blendResId;
 		this.hasAlpha = attr.hasAlpha;
+		this.highQuality = attr.highQuality;
 		this.blurRadious = attr.blurRadious;
 		if(view != null) {
 			viewAttr = new ViewAttribute();
@@ -57,6 +59,7 @@ public class ImageAttribute {
 		builder.append(roundPixels);
 		builder.append(blendResId);
 		builder.append(hasAlpha);
+		builder.append(highQuality);
 		builder.append(blurRadious);
 		
 		return builder.toString();

@@ -23,15 +23,19 @@ public class ImageFactory {
 		if(url.contains("file://"))
 			isLocal = true;
 		if(isLocal) {
-			if(attr != null && attr.maxHeight != 0 && attr.maxWidth != 0)
+			if(attr != null && attr.maxHeight != 0 && attr.maxWidth != 0) {
 				image = new LocalImage(context, url, attr.maxWidth, attr.maxHeight);
-			else
+				if(attr.highQuality == true)
+					((LocalImage)image).setHighQuality(true);
+			} else
 				image = new LocalImage(context, url);
 		}
 		else if(url != null) {
-			if(attr != null)
+			if(attr != null) {
 				image = new InternetImage(context, url, attr.maxWidth, attr.maxHeight);
-			else
+				if(attr.highQuality == true)
+					((InternetImage)image).setHighQuality(true);
+			} else
 				image = new InternetImage(context, url);
 		}
 		return image;

@@ -48,6 +48,8 @@ public class ImageManager implements ImageFileBasicOperation{
 	private String mDownloadPath = null;
 	
 	private ImageFactory mFactory;
+	
+	private boolean mSaveOrigin = false;
 
 	private Stack<GetImageTask> mTaskStack = new Stack<GetImageTask>();
 	private ArrayList<GetImageTask> mRunningTask = new ArrayList<GetImageTask>(
@@ -116,10 +118,6 @@ public class ImageManager implements ImageFileBasicOperation{
 
 	public Bitmap getImage(String host, String path, String params,
 			ImageAttribute attr) {
-		if (DEBUG_URL) {
-			Log.d(TAG, "host:" + host);
-			Log.d(TAG, "path:" + path);
-		}
 		if (TextUtils.isEmpty(host) || TextUtils.isEmpty(path)) {
 			return null;
 		}
@@ -130,6 +128,21 @@ public class ImageManager implements ImageFileBasicOperation{
 		if (TextUtils.isEmpty(params) == false)
 			url = url + "&" + params;
 
+		return setupGetProcess(id, path, url, attr);
+	}
+
+	public Bitmap getImage(String url, ImageAttribute attr) {
+		if (TextUtils.isEmpty(url)) {
+			return null;
+		}
+		resetPurgeTimer();
+		String id = getImageId(url, attr);
+
+		return setupGetProcess(id, null, url, attr);
+	}
+	
+	// directly return bitmap if exist and don't need to handle it from thread
+	private Bitmap setupGetProcess(String id, String path, String url, ImageAttribute attr) {
 		Bitmap bitmap = null;
 		if(isImageExist(id)) {
 			// exist, determine how to load bitmap
@@ -153,30 +166,6 @@ public class ImageManager implements ImageFileBasicOperation{
 				Log.d(TAG, "The url already in done");
 				Log.d(TAG, "url:" + url);
 			}
-		}
-
-		return bitmap;
-	}
-
-	public Bitmap getImage(String url, ImageAttribute attr) {
-		if (TextUtils.isEmpty(url)) {
-			return null;
-		}
-		resetPurgeTimer();
-		String id = getImageId(url, attr);
-
-		Bitmap bitmap = getBitmapFromCache(id, attr);
-		if (bitmap == null) {
-			synchronized (mTaskStack) {
-				getProcess(id, null, url, attr);
-			}
-		} else {
-			removePotentialView(id, attr);
-			if (DEBUG_URL) {
-				Log.d(TAG, "The url already in done");
-				Log.d(TAG, "url:" + url);
-			}
-			doneProcess(id, attr, bitmap);
 		}
 		return bitmap;
 	}
@@ -296,37 +285,44 @@ public class ImageManager implements ImageFileBasicOperation{
 		protected Bitmap doInBackground(Void... params) {
 			Bitmap bitmap = null;
 			try {
-				// origin bitmap without resize
+				// origin bitmap without any attribute
 				String id = null;
 				if(mPath == null)
-					id = mId;
+					id = getImageId(mUrl, null);
 				else
 					id = getImageId(mPath, null);
 				
 				BaseImage image = mFactory.getImage(mContext, mUrl, mAttr);
-				// check again before processing
-				bitmap = getBitmapFromCache(mId, mAttr);
-				if (bitmap == null) {
-					// first check is there origin bitmap or not
-					bitmap = getBitmapFromCache(id, mAttr);
+				// check again before processing, there are possibility that bitmap exist
+				// but we need to handle it from thread
+				Bitmap originBitmap = null;
+				Bitmap diskBitmap = getBitmapFromCache(mId, mAttr);
+				if (diskBitmap == null) {
+					// first trying to get origin image, if exist, no need download again
+					originBitmap = getBitmapFromCache(id, null);
+					image.setBitmap(originBitmap);
+				} else {
+					image.setBitmap(diskBitmap);
+				}
+								
+				// optional: save origin file to seed up the modification process for the same image
+				if(mSaveOrigin && diskBitmap!= null && originBitmap != null) {
+					setBitmapToFile(image.getBitmap(), id, mAttr==null?false:mAttr.hasAlpha);
 				}
 				
-				if (bitmap != null)
-					image.setBitmap(bitmap);
-				else {
-					// for case origin not exist, and will resize later
-					if(mAttr != null && mAttr.maxHeight != 0 && mAttr.maxWidth != 0)
-						setBitmapToFile(image.getBitmap(), id, mAttr.hasAlpha);
+				// process attribute setting
+				if(mAttr != null) {
+					image = mFactory.postProcessImage(mContext, mUrl, mAttr, image);
+					bitmap = image.getBitmap();
 				}
-				image = mFactory.postProcessImage(mContext, mUrl, mAttr, image);
-				bitmap = image.getBitmap();
 	
+				setBitmapToCache(bitmap, mId, true, mAttr==null?false:mAttr.hasAlpha);			
+
 				if (DEBUG_URL) {
 					Log.d(TAG, "image process done");
 					Log.d(TAG, "url:" + mUrl);
 				}
-				if (bitmap != null)
-					setBitmapToCache(bitmap, mId, true, mAttr.hasAlpha);
+				
 				
 			} catch (OutOfMemoryError e) {
 				Log.e(TAG, "OutOfMemoryError", e);
@@ -485,9 +481,11 @@ public class ImageManager implements ImageFileBasicOperation{
 			file = new File(mDownloadPath, cacheIndex);
 		if (file.exists()) {
 			LocalImage image = null;
-			if(attr != null && attr.maxHeight != 0 && attr.maxWidth != 0)
+			if(attr != null && attr.maxHeight != 0 && attr.maxWidth != 0) {
 				image = new LocalImage(mContext, file.getAbsolutePath(), attr.maxWidth, attr.maxHeight);
-			else
+				if(attr.highQuality == true)
+					image.setHighQuality(true);
+			} else
 				image = new LocalImage(mContext, file.getAbsolutePath());
 			try {
 				Bitmap bm = image.getBitmap();
@@ -507,7 +505,8 @@ public class ImageManager implements ImageFileBasicOperation{
 	}
 
 	private void setBitmapToCache(Bitmap bitmap, String cacheIndex, boolean savefile, boolean hasAlpha) {
-
+		if(bitmap == null)
+			return;
 		if (DEBUG) {
 			Log.d(TAG, "add filename:" + cacheIndex);
 		}
@@ -520,7 +519,7 @@ public class ImageManager implements ImageFileBasicOperation{
 	}
 	
 	public void setBitmapToFile(Bitmap bitmap, String cacheIndex, boolean hasAlpha) {
-		if(bitmap == null || isImageExist(cacheIndex))
+		if(bitmap == null)
 			return;
 		File targetPath;
 		if (mDownloadPath == null)

@@ -13,6 +13,8 @@ public class InternetImage extends BaseImage {
 	private Context mContext;
 	private String mUrl;
 	private Bitmap mBitmap;
+	
+	private boolean mHighQuality = false;
 
 	public InternetImage(Context context, String url) {
 		mContext = context;
@@ -24,6 +26,10 @@ public class InternetImage extends BaseImage {
 		mUrl = url;
 		IMAGE_MAX_WIDTH = maxWidth;
 		IMAGE_MAX_HEIGHT = maxHeight;
+	}
+	
+	public void setHighQuality(boolean highQuality) {
+		mHighQuality = highQuality;
 	}
 
 	public Bitmap getBitmap() throws OutOfMemoryError {
@@ -40,6 +46,8 @@ public class InternetImage extends BaseImage {
 						null, options);
 				options.inJustDecodeBounds = false;
 				
+				if(mHighQuality == false)
+					options.inPreferredConfig = Bitmap.Config.RGB_565;
 				options.inSampleSize = ImageUtil.calculateInSampleSize(options, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT);
 			}
 			options.inDither = false;

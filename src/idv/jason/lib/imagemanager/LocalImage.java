@@ -13,6 +13,7 @@ public class LocalImage extends BaseImage{
 	private int IMAGE_MAX_WIDTH = 0;
 	private int IMAGE_MAX_HEIGHT = 0;
 	private Bitmap mBitmap = null;
+	private boolean mHighQuality = false;
 	
 	public LocalImage(Context context, String path) {
 		mPath = path;
@@ -20,8 +21,12 @@ public class LocalImage extends BaseImage{
 	
 	public LocalImage(Context context, String path, int width, int height) {
 		mPath = path;
-		IMAGE_MAX_WIDTH = 1024;
-		IMAGE_MAX_HEIGHT = 1024;		
+		IMAGE_MAX_WIDTH = width;
+		IMAGE_MAX_HEIGHT = height;		
+	}
+	
+	public void setHighQuality(boolean highQuality) {
+		mHighQuality = highQuality;
 	}
 	
 	public Bitmap getBitmap() throws OutOfMemoryError{
@@ -31,9 +36,9 @@ public class LocalImage extends BaseImage{
 
         String filename = null;	
         //Decode image size
-        BitmapFactory.Options o = new BitmapFactory.Options();
+        BitmapFactory.Options options = new BitmapFactory.Options();
         if(IMAGE_MAX_WIDTH != 0 && IMAGE_MAX_HEIGHT != 0) {
-	        o.inJustDecodeBounds = true;
+	        options.inJustDecodeBounds = true;
 	
 			if (mPath.toString().startsWith("file://")) {
 				filename = mPath.toString().substring(7);
@@ -41,12 +46,16 @@ public class LocalImage extends BaseImage{
 				filename = mPath;
 			}
 			
-	        BitmapFactory.decodeFile(filename, o);
+	        BitmapFactory.decodeFile(filename, options);
 	
 	        //Decode with inSampleSize
-	        o.inJustDecodeBounds = false;
-	        o.inSampleSize = ImageUtil.calculateInSampleSize(o, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT);
-	        mBitmap = BitmapFactory.decodeFile(filename, o);
+	        options.inJustDecodeBounds = false;
+	        
+	        options.inPurgeable = true;
+	        if(mHighQuality == false)
+				options.inPreferredConfig = Bitmap.Config.RGB_565;
+	        options.inSampleSize = ImageUtil.calculateInSampleSize(options, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT);
+	        mBitmap = BitmapFactory.decodeFile(filename, options);
         }
         
         // Rotate to right direction
