@@ -67,6 +67,12 @@ public class ImageAttribute {
 	
 	public ViewAttribute viewAttr;
 	
+	public void setDefaultColor(int defaultColor) {
+		if(viewAttr != null && viewAttr.view != null) {
+			viewAttr.defaultColor = defaultColor;
+		}
+	}
+	
 	public void setDefaultResId(int resId) {
 		if(viewAttr != null && viewAttr.view != null) {
 			viewAttr.defaultResId = resId;

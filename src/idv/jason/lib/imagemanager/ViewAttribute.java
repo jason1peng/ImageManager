@@ -9,6 +9,7 @@ public class ViewAttribute {
 	public int defaultResId = -1;
 	public int backgroundResId = -1;
 	public int failResId = -1;
+	public int defaultColor = -1;
 	
 	public ScaleType defaultScaleType = ScaleType.FIT_XY;
 	public ScaleType failScaleType = ScaleType.CENTER;

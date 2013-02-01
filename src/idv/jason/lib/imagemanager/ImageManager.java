@@ -215,6 +215,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				view = attr.getView();
 				if (view != null) {
 					Bitmap bm = null;
+					Drawable downloadedDrawable = null;
 					if(attr.viewAttr.defaultResId != -1) {
 						Drawable drawable = mContext.getResources().getDrawable(
 								attr.viewAttr.defaultResId);
@@ -226,10 +227,17 @@ public class ImageManager implements ImageFileBasicOperation{
 						}
 
 						view.setScaleType(attr.viewAttr.defaultScaleType);
+						
+						downloadedDrawable = new DownloadedBitmapDrawable(task, bm);
+					} else if(attr.viewAttr.defaultColor != -1) {
+						downloadedDrawable = new DownloadedColorDrawable(task, attr.viewAttr.defaultColor);
+						
+					} else {
+						downloadedDrawable = new DownloadedBitmapDrawable(
+								task, null);
 					}
-					DownloadedDrawable downloadDrawable = new DownloadedDrawable(
-							task, bm);
-					view.setImageDrawable(downloadDrawable);
+					
+					view.setImageDrawable(downloadedDrawable);
 				}
 			}
 			if (mRunningTask.size() < CONCURRENT_GET_IMAGE_TASK_COUNT) {
@@ -653,11 +661,25 @@ public class ImageManager implements ImageFileBasicOperation{
 	 * download finish order.
 	 * </p>
 	 */
-	public static class DownloadedDrawable extends BitmapDrawable {
+	public static class DownloadedBitmapDrawable extends BitmapDrawable {
 		private final WeakReference<GetImageTask> bitmapGetImageTaskReference;
 
-		public DownloadedDrawable(GetImageTask bitmapDownloaderTask, Bitmap bm) {
+		public DownloadedBitmapDrawable(GetImageTask bitmapDownloaderTask, Bitmap bm) {
 			super(bm);
+			bitmapGetImageTaskReference = new WeakReference<GetImageTask>(
+					bitmapDownloaderTask);
+		}
+
+		public GetImageTask getTask() {
+			return bitmapGetImageTaskReference.get();
+		}
+	}
+	
+	public static class DownloadedColorDrawable extends ColorDrawable {
+		private final WeakReference<GetImageTask> bitmapGetImageTaskReference;
+
+		public DownloadedColorDrawable(GetImageTask bitmapDownloaderTask, int color) {
+			super(color);
 			bitmapGetImageTaskReference = new WeakReference<GetImageTask>(
 					bitmapDownloaderTask);
 		}
@@ -699,8 +721,11 @@ public class ImageManager implements ImageFileBasicOperation{
 	private static GetImageTask getTask(ImageView imageView) {
 		if (imageView != null) {
 			Drawable drawable = imageView.getDrawable();
-			if (drawable instanceof DownloadedDrawable) {
-				DownloadedDrawable downloadedDrawable = (DownloadedDrawable) drawable;
+			if (drawable instanceof DownloadedBitmapDrawable) {
+				DownloadedBitmapDrawable downloadedDrawable = (DownloadedBitmapDrawable) drawable;
+				return downloadedDrawable.getTask();
+			} else if (drawable instanceof DownloadedColorDrawable) {
+				DownloadedColorDrawable downloadedDrawable = (DownloadedColorDrawable) drawable;
 				return downloadedDrawable.getTask();
 			}
 		}
