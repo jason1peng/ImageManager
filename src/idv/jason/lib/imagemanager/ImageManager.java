@@ -313,19 +313,19 @@ public class ImageManager implements ImageFileBasicOperation{
 			if (bitmap == null) {
 				if(DEBUG) {
 					if (mAttr == null)
-						Log.e(TAG, "GetImageTask : image is null(url=" + mUrl + ")");
+						Log.e(TAG, "GetImageTask : " + mId + " is null(url=" + mUrl + ")");
 					else
-						Log.e(TAG, "GetImageTask : image is null(url=" + mUrl
+						Log.e(TAG, "GetImageTask : " + mId + " is null(url=" + mUrl
 								+ " attr=" + mAttr.getStringAttr() + ").");
 				}
 				updateView(null);
-				return;
-			}
-			if (mAttr != null && mAttr.getView() != null
-					&& mSkipUpdateView == false) {
-				if (DEBUG)
-					Log.d(TAG, "skip view");
-				updateView(bitmap);
+			} else {
+				if (mAttr != null && mAttr.getView() != null
+						&& mSkipUpdateView == false) {
+					if (DEBUG)
+						Log.d(TAG, "skip view");
+					updateView(bitmap);
+				}
 			}
 
 			ImageManagerCallback(onDownloadedCallback(mId, mUrl));
