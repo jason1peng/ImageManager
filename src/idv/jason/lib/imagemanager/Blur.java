@@ -16,7 +16,8 @@ public class Blur extends ImageDecorator {
 	public Bitmap getBitmap() {
 		if(mBitmap == null) {
 			mBitmap = mImage.getBitmap();
-			mBitmap = fastblur(mBitmap, mRadious);
+			if(mBitmap != null)
+				mBitmap = fastblur(mBitmap, mRadious);
 		}
 		return mBitmap;
 	}
