@@ -13,7 +13,7 @@ public class Blur extends ImageDecorator {
 	}
 
 	@Override
-	public Bitmap getBitmap() {
+	public Bitmap getBitmap() throws OutOfMemoryError{
 		if(mBitmap == null) {
 			mBitmap = mImage.getBitmap();
 			if(mBitmap != null)
@@ -27,7 +27,7 @@ public class Blur extends ImageDecorator {
 		mBitmap = bm;
 	}
 	
-	public Bitmap fastblur(Bitmap sentBitmap, int radius) {
+	public Bitmap fastblur(Bitmap sentBitmap, int radius) throws OutOfMemoryError{
         // Stack Blur Algorithm by Mario Klingemann <mario@quasimondo.com>
         Bitmap bitmap = sentBitmap.copy(Bitmap.Config.RGB_565, true);
 
