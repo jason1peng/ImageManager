@@ -48,6 +48,14 @@ public class LocalImage extends BaseImage{
 				options.inPreferredConfig = Bitmap.Config.RGB_565;
 	        options.inSampleSize = ImageUtil.calculateInSampleSize(options, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT);
 	        mBitmap = BitmapFactory.decodeFile(mPath, options);
+        } else {
+	        options.inJustDecodeBounds = true;
+        	BitmapFactory.decodeFile(mPath, options);
+	        options.inJustDecodeBounds = false;
+        	options.inPurgeable = true;
+	        if(mHighQuality == false)
+				options.inPreferredConfig = Bitmap.Config.RGB_565;
+	        mBitmap = BitmapFactory.decodeFile(mPath, options);
         }
         
         // Rotate to right direction
