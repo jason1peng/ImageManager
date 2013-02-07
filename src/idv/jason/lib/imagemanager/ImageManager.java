@@ -6,12 +6,13 @@
 
 package idv.jason.lib.imagemanager;
 
+import idv.jason.lib.imagemanager.util.LifoAsyncTask;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Stack;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -21,7 +22,6 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
-import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
 import android.text.TextUtils;
@@ -32,6 +32,7 @@ import android.widget.ImageView;
 public class ImageManager implements ImageFileBasicOperation{
 	private volatile static ImageManager mInstance;
 	public static final String TAG = ImageManager.class.getSimpleName();
+
 	private static boolean DEBUG = false;
 	private static boolean DEBUG_CACHE = false;
 	
@@ -41,7 +42,7 @@ public class ImageManager implements ImageFileBasicOperation{
 	public static final int DEBUG_FLAG_CACHE 	= 8;
 
 	private static final int IMAGE_MANAGER_CALLBACK = 100;
-	private static final int CONCURRENT_GET_IMAGE_TASK_COUNT = 2;
+	
 	private Context mContext;
 
 	private File mDownloadPath = null;
@@ -49,10 +50,6 @@ public class ImageManager implements ImageFileBasicOperation{
 	private ImageFactory mFactory;
 	
 	private boolean mSaveOrigin = false;
-
-	private Stack<GetImageTask> mTaskStack = new Stack<GetImageTask>();
-	private ArrayList<GetImageTask> mRunningTask = new ArrayList<GetImageTask>(
-			CONCURRENT_GET_IMAGE_TASK_COUNT);
 
 	private ImageManager(Context c) {
 		mContext = c;
@@ -146,9 +143,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		if(isImageExist(id)) {
 			// exist, determine how to load bitmap
 			if(attr != null && attr.shouldLoadFromThread()) {
-				synchronized (mTaskStack) {
-					getProcess(id, path, url, attr);
-				}
+				getProcess(id, path, url, attr);
 				
 			} else {
 				removePotentialView(id, attr);
@@ -158,9 +153,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		}
 		else {
 			// need download
-			synchronized (mTaskStack) {
-				getProcess(id, path, url, attr);
-			}
+			getProcess(id, path, url, attr);
 		}
 		return bitmap;
 	}
@@ -240,16 +233,11 @@ public class ImageManager implements ImageFileBasicOperation{
 					view.setImageDrawable(downloadedDrawable);
 				}
 			}
-			if (mRunningTask.size() < CONCURRENT_GET_IMAGE_TASK_COUNT) {
-				mRunningTask.add(task);
-				task.execute();
-			} else {
-				mTaskStack.push(task);
-			}
+			task.executeOnExecutor(LifoAsyncTask.LIFO_THREAD_POOL_EXECUTOR, null, null, null);
 		}
 	}
 
-	class GetImageTask extends AsyncTask<Void, Void, Bitmap> {
+	class GetImageTask extends LifoAsyncTask<Void, Void, Bitmap> {
 		private String mUrl;
 		private ImageAttribute mAttr;
 		private String mId;
@@ -316,8 +304,6 @@ public class ImageManager implements ImageFileBasicOperation{
 
 		@Override
 		protected void onPostExecute(Bitmap bitmap) {
-			decreaseTask();
-
 			if (bitmap == null) {
 				if(DEBUG) {
 					if (mAttr == null)
@@ -338,20 +324,6 @@ public class ImageManager implements ImageFileBasicOperation{
 
 			ImageManagerCallback(onDownloadedCallback(mId, mUrl));
 			ImageManagerCallback(onDoneCallback(mId, bitmap));
-		}
-
-		@Override
-		protected void onCancelled() {
-			synchronized (mTaskStack) {
-				if (this.getStatus() == AsyncTask.Status.RUNNING)
-					mRunningTask.remove(this);
-				if (DEBUG)
-					Log.d(TAG,
-							"canceled, running task count="
-									+ mRunningTask.size() + " pending:"
-									+ mTaskStack.size());
-				checkNextTask();
-			}
 		}
 
 		private void updateView(Bitmap bitmap) {
@@ -375,19 +347,6 @@ public class ImageManager implements ImageFileBasicOperation{
 				}
 			}
 		}
-
-		private void decreaseTask() {
-			synchronized (mTaskStack) {
-				if (this.isCancelled() == false) {
-					mRunningTask.remove(this);
-					if (DEBUG)
-						Log.d(TAG, "done task, running task count="
-								+ mRunningTask.size() + " pending:"
-								+ mTaskStack.size());
-					checkNextTask();
-				}
-			}
-		}
 	}
 	
 	private void setImage(ImageView image, Bitmap bitmap) {
@@ -398,47 +357,6 @@ public class ImageManager implements ImageFileBasicOperation{
 			TransitionDrawable drawable = new TransitionDrawable(layers);
 			image.setImageDrawable(drawable);
 			drawable.startTransition(300);
-		}
-	}
-
-	private GetImageTask getNextTask() {
-		GetImageTask nextTask = null;
-		for (int i = mTaskStack.size() - 1; i >= 0; --i) {
-			GetImageTask task = mTaskStack.get(i);
-			if (task.isCancelled()) {
-				if (DEBUG)
-					Log.d(TAG, "queue task canceled, check next");
-				mTaskStack.remove(task);
-				continue;
-			}
-
-			for (GetImageTask runningTask : mRunningTask) {
-				if (!task.mId.equals(runningTask.mId)) {
-					nextTask = task;
-					break;
-				}
-			}
-			if (nextTask != null)
-				break;
-		}
-		return nextTask;
-	}
-
-	private void checkNextTask() {
-		if (mTaskStack.size() > 0) {
-			GetImageTask nextTask = getNextTask();
-			if (nextTask == null) {
-				nextTask = mTaskStack.peek();
-			}
-			mTaskStack.remove(nextTask);
-			mRunningTask.add(nextTask);
-			nextTask.execute();
-			if (DEBUG)
-				Log.d(TAG, "ran queued task, task count:" + mRunningTask.size());
-
-		} else {
-			if (DEBUG)
-				Log.d(TAG, "queue empty, task count:" + mRunningTask.size());
 		}
 	}
 
