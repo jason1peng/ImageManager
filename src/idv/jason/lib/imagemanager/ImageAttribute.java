@@ -7,7 +7,10 @@ import android.widget.ImageView.ScaleType;
 
 public class ImageAttribute {
 	public int maxWidth = 0;
-	public int maxHeight = 0;	
+	public int maxHeight = 0;
+	
+	public int resizeWidth = 0;
+	public int resizeHeight = 0;
 	
 	public int roundPixels = 0;
 	public int blendResId = 0;
@@ -31,6 +34,8 @@ public class ImageAttribute {
 	public ImageAttribute(ImageAttribute attr, ImageView view) {
 		this.maxHeight = attr.maxHeight;
 		this.maxWidth = attr.maxWidth;
+		this.resizeHeight = attr.resizeHeight;
+		this.resizeWidth = attr.resizeWidth;
 		this.roundPixels = attr.roundPixels;
 		this.blendResId = attr.blendResId;
 		this.hasAlpha = attr.hasAlpha;
@@ -56,6 +61,8 @@ public class ImageAttribute {
 		
 		builder.append(maxWidth);
 		builder.append(maxHeight);
+		builder.append(resizeWidth);
+		builder.append(resizeHeight);
 		builder.append(roundPixels);
 		builder.append(blendResId);
 		builder.append(hasAlpha);

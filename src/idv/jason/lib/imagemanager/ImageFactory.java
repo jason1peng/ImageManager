@@ -44,10 +44,10 @@ public class ImageFactory {
 	public BaseImage postProcessImage(Context context, String url,
 			ImageAttribute attr, BaseImage image) {
 		if (image != null && attr != null) {
-			if (attr.maxHeight != 0 && attr.maxWidth != 0) {
+			if (attr.resizeHeight != 0 && attr.resizeWidth != 0) {
 				// we have resized image when decode from local path
-				image = new ResizeImage(image, attr.maxWidth,
-						attr.maxHeight);
+				image = new ResizeImage(image, attr.resizeWidth,
+						attr.resizeHeight);
 			}
 
 			if (attr.blendResId != 0) {

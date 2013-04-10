@@ -33,6 +33,10 @@ public class LocalImage extends BaseImage{
 		if (mBitmap != null) {
 			return mBitmap;
 		}
+		
+		if(mPath.contains("file://"))
+			mPath = mPath.substring(7);
+		
         //Decode image size
         BitmapFactory.Options options = new BitmapFactory.Options();
         if(IMAGE_MAX_WIDTH != 0 && IMAGE_MAX_HEIGHT != 0) {
