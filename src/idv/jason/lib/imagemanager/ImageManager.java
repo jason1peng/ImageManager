@@ -6,6 +6,7 @@
 
 package idv.jason.lib.imagemanager;
 
+import idv.jason.lib.imagemanager.tasks.ImageManagerThreadFactory;
 import idv.jason.lib.imagemanager.util.LifoAsyncTask;
 
 import java.io.File;
@@ -13,6 +14,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -50,6 +53,9 @@ public class ImageManager implements ImageFileBasicOperation{
 	private ImageFactory mFactory;
 	
 	private boolean mSaveOrigin = false;
+	
+	public static final String THREAD_FILTERS = "filters_thread";
+	private ExecutorService mSingleThreadExecutor;
 
 	private ImageManager(Context c) {
 		mContext = c;
@@ -57,6 +63,8 @@ public class ImageManager implements ImageFileBasicOperation{
 		mDownloadedCallbackList = new ArrayList<ImageDownloadedCallback>();
 		mFactory = new ImageFactory();
 		mFactory.setImageBasicOperation(this);
+		mSingleThreadExecutor = Executors.newSingleThreadExecutor(new ImageManagerThreadFactory(THREAD_FILTERS));
+		
 		setDownloadPath(null);
 	}
 	
@@ -233,7 +241,10 @@ public class ImageManager implements ImageFileBasicOperation{
 					view.setImageDrawable(downloadedDrawable);
 				}
 			}
-			task.executeOnExecutor(LifoAsyncTask.LIFO_THREAD_POOL_EXECUTOR, null, null, null);
+			if(attr != null && attr.filterPhoto != 0 && isImageExist(id) == false)
+				task.executeOnExecutor(mSingleThreadExecutor, null, null, null);
+			else
+				task.executeOnExecutor(LifoAsyncTask.LIFO_THREAD_POOL_EXECUTOR, null, null, null);
 		}
 	}
 
@@ -282,6 +293,7 @@ public class ImageManager implements ImageFileBasicOperation{
 					image.setBitmap(originBitmap);
 				} else {
 					image.setBitmap(diskBitmap);
+					return diskBitmap;
 				}
 								
 				// optional: save origin file to seed up the modification process for the same image

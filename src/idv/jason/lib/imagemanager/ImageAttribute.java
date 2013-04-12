@@ -20,6 +20,8 @@ public class ImageAttribute {
 	public boolean hasAlpha = false;
 	public boolean highQuality = false;
 	
+	public int filterPhoto = 0;
+	
 	public ImageAttribute() {
 		
 	}
@@ -41,6 +43,8 @@ public class ImageAttribute {
 		this.hasAlpha = attr.hasAlpha;
 		this.highQuality = attr.highQuality;
 		this.blurRadious = attr.blurRadious;
+		
+		this.filterPhoto = attr.filterPhoto;
 		if(view != null) {
 			viewAttr = new ViewAttribute();
 			viewAttr.view = new WeakReference<ImageView>(view);
@@ -68,6 +72,8 @@ public class ImageAttribute {
 		builder.append(hasAlpha);
 		builder.append(highQuality);
 		builder.append(blurRadious);
+
+		builder.append(filterPhoto);
 		
 		return builder.toString();
 	}

@@ -61,6 +61,10 @@ public class ImageFactory {
 			if(attr.blurRadious != 0) {
 				image = new Blur(image, attr.blurRadious);
 			}
+			
+			if(attr.filterPhoto != 0) {
+				image = new FilterImage(image, attr.filterPhoto);
+			}
 		}
 		return image;
 	}
