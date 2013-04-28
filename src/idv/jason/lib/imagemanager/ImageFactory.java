@@ -20,8 +20,11 @@ public class ImageFactory {
 	public BaseImage getImage(Context context, String url, ImageAttribute attr) {
 		BaseImage image = null;
 		boolean isLocal = false;
+		boolean isDatabase = false;
 		if(url.contains("file://"))
 			isLocal = true;
+		else if(url.contains(MediaStoreImage.PREFIX))
+			isDatabase = true;
 		if(isLocal) {
 			if(attr != null && attr.maxHeight != 0 && attr.maxWidth != 0) {
 				image = new LocalImage(context, url, attr.maxWidth, attr.maxHeight);
@@ -29,6 +32,9 @@ public class ImageFactory {
 					((LocalImage)image).setHighQuality(true);
 			} else
 				image = new LocalImage(context, url);
+		}
+		else if(isDatabase) {
+			image = new MediaStoreImage(context, url);
 		}
 		else if(url != null) {
 			if(attr != null) {

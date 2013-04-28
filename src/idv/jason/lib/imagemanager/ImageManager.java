@@ -34,6 +34,7 @@ import android.widget.ImageView;
 
 public class ImageManager implements ImageFileBasicOperation{
 	private volatile static ImageManager mInstance;
+	
 	public static final String TAG = ImageManager.class.getSimpleName();
 
 	private static boolean DEBUG = false;
@@ -55,6 +56,7 @@ public class ImageManager implements ImageFileBasicOperation{
 	private boolean mSaveOrigin = false;
 	
 	public static final String THREAD_FILTERS = "filters_thread";
+	
 	private ExecutorService mSingleThreadExecutor;
 
 	private ImageManager(Context c) {
@@ -143,6 +145,18 @@ public class ImageManager implements ImageFileBasicOperation{
 		String id = getImageId(url, attr);
 
 		return setupGetProcess(id, null, url, attr);
+	}
+	
+	public Bitmap getMediaStoreImageThumbnail(String id, ImageAttribute attr) {
+		Bitmap bitmap = null;
+		if(attr != null && attr.shouldLoadFromThread()) {
+			getProcess(id, null, MediaStoreImage.PREFIX + id, attr);
+			
+		} else {
+			removePotentialView(id, attr);
+			doneProcess(id, attr, bitmap);
+		}
+		return bitmap;
 	}
 	
 	// directly return bitmap if exist and don't need to handle it from thread
