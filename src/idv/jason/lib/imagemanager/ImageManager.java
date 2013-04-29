@@ -56,8 +56,10 @@ public class ImageManager implements ImageFileBasicOperation{
 	private boolean mSaveOrigin = false;
 	
 	public static final String THREAD_FILTERS = "filters_thread";
+	public static final String THREAD_MEDIASTORE = "mediastore_thread";
 	
 	private ExecutorService mSingleThreadExecutor;
+	private ExecutorService mLocalThreadExecutor;
 
 	private ImageManager(Context c) {
 		mContext = c;
@@ -66,7 +68,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		mFactory = new ImageFactory();
 		mFactory.setImageBasicOperation(this);
 		mSingleThreadExecutor = Executors.newSingleThreadExecutor(new ImageManagerThreadFactory(THREAD_FILTERS));
-		
+		mLocalThreadExecutor = Executors.newFixedThreadPool(5, new ImageManagerThreadFactory(THREAD_MEDIASTORE));
 		setDownloadPath(null);
 	}
 	
@@ -255,8 +257,13 @@ public class ImageManager implements ImageFileBasicOperation{
 					view.setImageDrawable(downloadedDrawable);
 				}
 			}
+			Log.d(TAG, "url:" + url);
 			if(attr != null && attr.filterPhoto != 0 && isImageExist(id) == false)
 				task.executeOnExecutor(mSingleThreadExecutor, null, null, null);
+			else if(url.contains(MediaStoreImage.PREFIX)) {
+				Log.d(TAG, "local thread");
+				task.executeOnExecutor(mLocalThreadExecutor, null, null, null);
+			}
 			else
 				task.executeOnExecutor(LifoAsyncTask.LIFO_THREAD_POOL_EXECUTOR, null, null, null);
 		}
