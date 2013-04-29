@@ -67,14 +67,14 @@ public class LocalImage extends BaseImage{
 		float rotation = rotationForImage(mPath);
 		if (rotation != 0f) {
 			matrix.preRotate(rotation);
+			if(mBitmap != null && rotation != 0f) {
+				int height = mBitmap.getHeight();
+				int width = mBitmap.getWidth();
+				mBitmap = Bitmap.createBitmap(mBitmap, 0, 0, width, height, matrix,
+						true);
+			}
 		}
 
-		if(mBitmap != null) {
-			int height = mBitmap.getHeight();
-			int width = mBitmap.getWidth();
-			mBitmap = Bitmap.createBitmap(mBitmap, 0, 0, width, height, matrix,
-					true);
-		}
 	    return mBitmap;
 	}
 	
