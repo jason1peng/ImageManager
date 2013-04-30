@@ -260,7 +260,7 @@ public class ImageManager implements ImageFileBasicOperation{
 			Log.d(TAG, "url:" + url);
 			if(attr != null && attr.filterPhoto != 0 && isImageExist(id) == false)
 				task.executeOnExecutor(mSingleThreadExecutor, null, null, null);
-			else if(url.contains(MediaStoreImage.PREFIX)) {
+			else if(url.contains(MediaStoreImage.PREFIX) || url.contains(LocalImage.LOCAL_FILE_PREFIX) || isImageExist(id)) {
 				Log.d(TAG, "local thread");
 				task.executeOnExecutor(mLocalThreadExecutor, null, null, null);
 			}

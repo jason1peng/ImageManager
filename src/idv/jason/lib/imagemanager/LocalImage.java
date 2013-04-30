@@ -14,6 +14,7 @@ public class LocalImage extends BaseImage{
 	private int IMAGE_MAX_HEIGHT = 0;
 	private Bitmap mBitmap = null;
 	private boolean mHighQuality = false;
+	public static String LOCAL_FILE_PREFIX = "file://";
 	
 	public LocalImage(Context context, String path) {
 		mPath = path;
@@ -34,7 +35,7 @@ public class LocalImage extends BaseImage{
 			return mBitmap;
 		}
 		
-		if(mPath.contains("file://"))
+		if(mPath.contains(LOCAL_FILE_PREFIX))
 			mPath = mPath.substring(7);
 		
         //Decode image size

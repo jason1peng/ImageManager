@@ -21,7 +21,7 @@ public class ImageFactory {
 		BaseImage image = null;
 		boolean isLocal = false;
 		boolean isDatabase = false;
-		if(url.contains("file://"))
+		if(url.contains(LocalImage.LOCAL_FILE_PREFIX))
 			isLocal = true;
 		else if(url.contains(MediaStoreImage.PREFIX))
 			isDatabase = true;
