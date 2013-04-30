@@ -1,5 +1,7 @@
 package idv.jason.lib.imagemanager;
 
+import idv.jason.lib.imagemanager.ImageManager.ImageDoneCallback;
+
 import java.lang.ref.WeakReference;
 
 import android.widget.ImageView;
@@ -22,8 +24,14 @@ public class ImageAttribute {
 	
 	public int filterPhoto = 0;
 	
+	public ImageDoneCallback mCallback;
+	
 	public ImageAttribute() {
 		
+	}
+	
+	public ImageAttribute(ImageDoneCallback callback) {
+		mCallback = callback;
 	}
 	
 	public ImageAttribute(ImageView view) {
@@ -31,6 +39,14 @@ public class ImageAttribute {
 			viewAttr = new ViewAttribute();
 			viewAttr.view = new WeakReference<ImageView>(view);
 		}
+	}
+	
+	public ImageAttribute(ImageView view, ImageDoneCallback callback) {
+		if(view != null) {
+			viewAttr = new ViewAttribute();
+			viewAttr.view = new WeakReference<ImageView>(view);
+		}
+		mCallback = callback;
 	}
 	
 	public ImageAttribute(ImageAttribute attr, ImageView view) {

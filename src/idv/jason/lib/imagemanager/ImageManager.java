@@ -193,8 +193,12 @@ public class ImageManager implements ImageFileBasicOperation{
 					view.setBackgroundResource(attr.viewAttr.backgroundResId);
 			} else if (view == null) {
 			}
+			if(attr.mCallback != null) {
+				ImageManagerCallback(onIndividualDoneCallback(attr.mCallback, id, bitmap));
+				attr.mCallback = null;
+			}
 		}
-		ImageManagerCallback(onDoneCallback(id, bitmap));
+		
 	}
 
 	private Bitmap getDrawableBitmap(Drawable drawable, ImageAttribute attr) {
@@ -507,6 +511,14 @@ public class ImageManager implements ImageFileBasicOperation{
 		message.what = IMAGE_MANAGER_CALLBACK;
 		message.obj = callback;
 		mHandler.sendMessage(message);
+	}
+	
+	protected Runnable onIndividualDoneCallback(final ImageDoneCallback callback, final String id, final Bitmap bitmap) {
+		return new Runnable() {
+			public void run() {
+				callback.imageDone(id, bitmap);
+			}
+		};
 	}
 
 	protected Runnable onDoneCallback(final String id, final Bitmap bitmap) {
