@@ -24,6 +24,14 @@ public class MediaStoreImage extends BaseImage{
         sBitmapOptionsCache.inDither = false;
 	}
 	
+	public static String getId(String url) {
+		String id = null;
+		if(url.contains(PREFIX)) {
+			id = url.substring(PREFIX.length());
+		}
+		return id;
+	}
+	
 	public Bitmap getBitmap() {
 		if (mBitmap != null) {
 			return mBitmap;

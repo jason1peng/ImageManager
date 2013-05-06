@@ -20,8 +20,7 @@ public class LocalImage extends BaseImage{
 		mPath = path;
 	}
 	
-	public LocalImage(Context context, String path, int width, int height) {
-		mPath = path;
+	public void setImaggMaxSize(int height, int width) {
 		IMAGE_MAX_WIDTH = width;
 		IMAGE_MAX_HEIGHT = height;		
 	}
@@ -51,6 +50,8 @@ public class LocalImage extends BaseImage{
 	        options.inPurgeable = true;
 	        if(mHighQuality == false)
 				options.inPreferredConfig = Bitmap.Config.RGB_565;
+	        else
+	        	options.inPreferredConfig = Bitmap.Config.ARGB_8888;
 	        options.inSampleSize = ImageUtil.calculateInSampleSize(options, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT);
 	        mBitmap = BitmapFactory.decodeFile(mPath, options);
         } else {
@@ -60,6 +61,8 @@ public class LocalImage extends BaseImage{
         	options.inPurgeable = true;
 	        if(mHighQuality == false)
 				options.inPreferredConfig = Bitmap.Config.RGB_565;
+	        else
+	        	options.inPreferredConfig = Bitmap.Config.ARGB_8888;
 	        mBitmap = BitmapFactory.decodeFile(mPath, options);
         }
         

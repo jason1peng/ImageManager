@@ -11,16 +11,18 @@ public class ImageAttribute {
 	public int maxWidth = 0;
 	public int maxHeight = 0;
 	
-	public int resizeWidth = 0;
-	public int resizeHeight = 0;
+	private int resizeWidth = 0;
+	private int resizeHeight = 0;	
 	
-	public int roundPixels = 0;
-	public int blendResId = 0;
+	private int roundPixels = 0;
+	private int blendResId = 0;
 	
-	public int blurRadious = 0;
+	private int blurRadious = 0;
 	
-	public boolean hasAlpha = false;
-	public boolean highQuality = false;
+	private boolean hasAlpha = false;
+	private boolean highQuality = false;
+	
+	private boolean defaultAttribute = true;
 	
 	public int filterPhoto = 0;
 	
@@ -49,6 +51,80 @@ public class ImageAttribute {
 		mCallback = callback;
 	}
 	
+	public int getMaxWidth() {
+		return maxWidth;
+	}
+	
+	public int getMaxHeight() {
+		return maxHeight;
+	}
+	
+	public int getResizeWidth() {
+		return resizeWidth;
+	}
+	
+	public int getResizeHeight() {
+		return resizeHeight;
+	}
+	
+	public int getRoundPixels() {
+		return roundPixels;
+	}
+	
+	public int getBlendRedId() {
+		return blendResId;
+	}
+	
+	public int getBlurRadiout() {
+		return blurRadious;
+	}
+	
+	public boolean hasAlpha() {
+		return hasAlpha;
+	}
+	
+	public boolean highQuality() {
+		return highQuality;
+	}
+	
+	public void setMaxSize(int width, int height) {
+		maxWidth = width;
+		maxHeight = height;
+		defaultAttribute = false;
+	}
+	
+	public void setResizeSize(int width, int height) {
+		resizeWidth = width;
+		resizeHeight = height;
+		defaultAttribute = false;
+	}
+	
+	public void setRoundPixels(int round) {
+		roundPixels = round;
+		defaultAttribute = false;
+	}
+	
+	public void setBlendResId(int blend) {
+		blendResId = blend;
+		defaultAttribute = false;
+	}
+	
+	public void setBlurRadious(int blur) {
+		blurRadious = blur;
+		defaultAttribute = false;
+	}
+	
+	public void setHasAlpha(boolean alpha) {
+		hasAlpha = alpha;
+		defaultAttribute = false;
+	}
+	
+
+	public void setHighQuality(boolean quality) {
+		highQuality = quality;
+		defaultAttribute = false;
+	}
+	
 	public ImageAttribute(ImageAttribute attr, ImageView view) {
 		this.maxHeight = attr.maxHeight;
 		this.maxWidth = attr.maxWidth;
@@ -64,15 +140,6 @@ public class ImageAttribute {
 		if(view != null) {
 			viewAttr = new ViewAttribute();
 			viewAttr.view = new WeakReference<ImageView>(view);
-			if(attr.viewAttr != null) {
-				viewAttr.applyWithAnim = attr.viewAttr.applyWithAnim;
-				viewAttr.defaultScaleType = attr.viewAttr.defaultScaleType;
-				viewAttr.doneScaleType = attr.viewAttr.doneScaleType;
-				viewAttr.failScaleType = attr.viewAttr.failScaleType;
-				viewAttr.defaultResId = attr.viewAttr.defaultResId;
-				viewAttr.failResId = attr.viewAttr.failResId;
-				viewAttr.backgroundResId = attr.viewAttr.backgroundResId;
-			}
 		}
 	}
 	
@@ -92,6 +159,10 @@ public class ImageAttribute {
 		builder.append(filterPhoto);
 		
 		return builder.toString();
+	}
+	
+	public boolean containsAttribute() {
+		return defaultAttribute;
 	}
 	
 	public ViewAttribute viewAttr;

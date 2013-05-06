@@ -26,46 +26,45 @@ public class ImageFactory {
 		else if(url.contains(MediaStoreImage.PREFIX))
 			isDatabase = true;
 		if(isLocal) {
-			if(attr != null && attr.maxHeight != 0 && attr.maxWidth != 0) {
-				image = new LocalImage(context, url, attr.maxWidth, attr.maxHeight);
-				if(attr.highQuality == true)
-					((LocalImage)image).setHighQuality(true);
-			} else
-				image = new LocalImage(context, url);
+			image = new LocalImage(context, url);
+			if(attr != null && attr.containsAttribute()) {
+				LocalImage li = (LocalImage) image;
+				li.setImaggMaxSize(attr.getMaxHeight(), attr.getMaxWidth());
+				li.setHighQuality(attr.highQuality());
+			}
 		}
 		else if(isDatabase) {
 			image = new MediaStoreImage(context, url);
 		}
 		else if(url != null) {
-			if(attr != null) {
-				image = new InternetImage(context, url, attr.maxWidth, attr.maxHeight);
-				if(attr.highQuality == true)
-					((InternetImage)image).setHighQuality(true);
-			} else
-				image = new InternetImage(context, url);
+			image = new InternetImage(context, url);
+			if(attr != null && attr.containsAttribute()) {
+				InternetImage ii = (InternetImage) image;
+				ii.setImaggMaxSize(attr.getMaxHeight(), attr.getMaxWidth());
+				ii.setHighQuality(true);
+			}
 		}
 		return image;
 	}
 	
 	public BaseImage postProcessImage(Context context, String url,
 			ImageAttribute attr, BaseImage image) {
-		if (image != null && attr != null) {
-			if (attr.resizeHeight != 0 && attr.resizeWidth != 0) {
-				// we have resized image when decode from local path
-				image = new ResizeImage(image, attr.resizeWidth,
-						attr.resizeHeight);
+		if (image != null && attr != null && attr.containsAttribute()) {
+			if (attr.getResizeWidth() != 0 && attr.getResizeHeight() != 0) {
+				image = new ResizeImage(image, attr.getResizeWidth(),
+						attr.getResizeHeight());
 			}
 
-			if (attr.blendResId != 0) {
-				image = new BlendImage(context, image, attr.blendResId);
+			if (attr.getBlendRedId() != 0) {
+				image = new BlendImage(context, image, attr.getBlendRedId());
 			}
 
-			if (attr.roundPixels != 0) {
-				image = new RoundCorner(image, attr.roundPixels);
+			if (attr.getRoundPixels() != 0) {
+				image = new RoundCorner(image, attr.getRoundPixels());
 			}
 			
-			if(attr.blurRadious != 0) {
-				image = new Blur(image, attr.blurRadious);
+			if(attr.getBlurRadiout() != 0) {
+				image = new Blur(image, attr.getBlurRadiout());
 			}
 			
 			if(attr.filterPhoto != 0) {

@@ -21,11 +21,9 @@ public class InternetImage extends BaseImage {
 		mUrl = url;
 	}
 	
-	public InternetImage(Context context, String url, int maxWidth, int maxHeight) {
-		mContext = context;
-		mUrl = url;
-		IMAGE_MAX_WIDTH = maxWidth;
-		IMAGE_MAX_HEIGHT = maxHeight;
+	public void setImaggMaxSize(int height, int width) {
+		IMAGE_MAX_WIDTH = width;
+		IMAGE_MAX_HEIGHT = height;		
 	}
 	
 	public void setHighQuality(boolean highQuality) {
