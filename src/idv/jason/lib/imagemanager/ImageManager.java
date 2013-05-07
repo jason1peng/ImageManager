@@ -61,8 +61,10 @@ public class ImageManager implements ImageFileBasicOperation{
 	
 	public static final String THREAD_FILTERS = "filters_thread";
 	public static final String THREAD_MEDIASTORE = "mediastore_thread";
+	public static final String THREAD_LOCAL = "local_thread";
 	
-	private ExecutorService mSingleThreadExecutor;
+	private ExecutorService mFilterThreadExecutor;
+	private ExecutorService mMediaStoreThreadExecutor;
 	private ExecutorService mLocalThreadExecutor;
 	private DatabaseHelper mDbHelper;
 	private SQLiteDatabase mWritableDb;
@@ -77,8 +79,9 @@ public class ImageManager implements ImageFileBasicOperation{
 		mDownloadedCallbackList = new ArrayList<ImageDownloadedCallback>();
 		mFactory = new ImageFactory();
 		mFactory.setImageBasicOperation(this);
-		mSingleThreadExecutor = Executors.newSingleThreadExecutor(new ImageManagerThreadFactory(THREAD_FILTERS));
-		mLocalThreadExecutor = Executors.newFixedThreadPool(5, new ImageManagerThreadFactory(THREAD_MEDIASTORE));
+		mFilterThreadExecutor = Executors.newSingleThreadExecutor(new ImageManagerThreadFactory(THREAD_FILTERS));
+		mMediaStoreThreadExecutor = Executors.newFixedThreadPool(2, new ImageManagerThreadFactory(THREAD_MEDIASTORE));
+		mLocalThreadExecutor = Executors.newFixedThreadPool(3, new ImageManagerThreadFactory(THREAD_LOCAL));
 		setDownloadPath(null);
 	}
 	
@@ -297,8 +300,10 @@ public class ImageManager implements ImageFileBasicOperation{
 			if(DEBUG_URL)
 				Log.d(TAG, "getProcess: id=" + id + " url=" + url.getDownloadUrl());
 			if(attr != null && attr.filterPhoto != 0 && id != null)
-				task.executeOnExecutor(mSingleThreadExecutor, null, null, null);
-			else if(url.isLocalFile() || url.isMediaStoreFile() || id != null) {
+				task.executeOnExecutor(mFilterThreadExecutor, null, null, null);
+			else if(url.isMediaStoreFile() && id != null) {
+				task.executeOnExecutor(mMediaStoreThreadExecutor, null, null, null);
+			} else if(url.isLocalFile()  && id != null) {
 				task.executeOnExecutor(mLocalThreadExecutor, null, null, null);
 			}
 			else
