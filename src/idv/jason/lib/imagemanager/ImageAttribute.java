@@ -27,6 +27,7 @@ public class ImageAttribute {
 	public int filterPhoto = 0;
 	
 	public ImageDoneCallback mCallback;
+	public Object mParam;
 	
 	public ImageAttribute() {
 		
@@ -34,6 +35,10 @@ public class ImageAttribute {
 	
 	public ImageAttribute(ImageDoneCallback callback) {
 		mCallback = callback;
+	}
+	
+	public void setCallbackParam(Object param) {
+		mParam = param;
 	}
 	
 	public ImageAttribute(ImageView view) {

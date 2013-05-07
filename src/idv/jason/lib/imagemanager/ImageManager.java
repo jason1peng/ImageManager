@@ -6,6 +6,7 @@
 
 package idv.jason.lib.imagemanager;
 
+import idv.jason.lib.imagemanager.model.UrlInfo;
 import idv.jason.lib.imagemanager.tasks.ImageManagerThreadFactory;
 import idv.jason.lib.imagemanager.db.DatabaseHelper;
 import idv.jason.lib.imagemanager.db.ImageTable;
@@ -15,17 +16,14 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.Date;
 
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteException;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -34,10 +32,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.os.Handler;
-import android.os.Message;
-import android.provider.MediaStore;
 import android.text.TextUtils;
-import android.util.Base64;
 import android.util.Log;
 import android.widget.ImageView;
 
@@ -50,8 +45,6 @@ public class ImageManager implements ImageFileBasicOperation{
 	private static boolean DEBUG_CACHE = false;
 	private static boolean DEBUG_BUFFER = false;
 	private static boolean DEBUG_URL = false;
-	
-	private static final int IMAGE_MANAGER_CALLBACK = 100;
 	
 	private Context mContext;
 
@@ -75,8 +68,6 @@ public class ImageManager implements ImageFileBasicOperation{
 		mDbHelper = new DatabaseHelper(c);
 		mWritableDb = mDbHelper.getWritableDatabase();
 		
-		mDoneCallbackList = new ArrayList<ImageDoneCallback>();
-		mDownloadedCallbackList = new ArrayList<ImageDownloadedCallback>();
 		mFactory = new ImageFactory();
 		mFactory.setImageBasicOperation(this);
 		mFilterThreadExecutor = Executors.newSingleThreadExecutor(new ImageManagerThreadFactory(THREAD_FILTERS));
@@ -115,49 +106,6 @@ public class ImageManager implements ImageFileBasicOperation{
 		}
 		return mInstance;
 	}
-	
-	class UrlInfo {
-		String path;
-		String url;
-		String imageId;
-		
-		public UrlInfo(String url) {
-			this.path = null;
-			this.url = url;
-		}
-		
-		public UrlInfo(String path, String url) {
-			this.path = path;
-			this.url = url;
-		}
-		
-		public void setImageId(String id) {
-			imageId = id;
-		}
-		
-		public String getDownloadUrl() {
-			return url;
-		}
-		
-		public String getUniquePath() {
-			if(path == null)
-				return url;
-			else
-				return path;
-		}
-		
-		public String getImageId() {
-			return imageId;
-		}
-		
-		public boolean isLocalFile() {
-			return url.contains(LocalImage.LOCAL_FILE_PREFIX);
-		}
-		
-		public boolean isMediaStoreFile() {
-			return url.contains(MediaStoreImage.PREFIX);
-		}
-	}
 
 	public Bitmap getImage(String host, String path, String params,
 			ImageAttribute attr) {
@@ -188,8 +136,9 @@ public class ImageManager implements ImageFileBasicOperation{
 		if(attr != null && attr.shouldLoadFromThread()) {
 			getProcess(mediaStoreId, info, attr);
 		} else {
+			bitmap = getBitmapFromMediaStore(mediaStoreId, attr);
 			removePotentialView(info.getUniquePath(), attr);
-			doneProcess(mediaStoreId, attr, bitmap);
+			doneProcess(info.getUniquePath(), attr, bitmap);
 		}
 		return bitmap;
 	}
@@ -207,7 +156,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				removePotentialView(url.getUniquePath(), attr);
 				bitmap = getBitmapFromCache(id, attr);
 				if(bitmap != null)
-					doneProcess(id, attr, bitmap);
+					doneProcess(url.getUniquePath(), attr, bitmap);
 				else
 					getProcess(id, url, attr);
 			}
@@ -219,23 +168,33 @@ public class ImageManager implements ImageFileBasicOperation{
 		return bitmap;
 	}
 
-	private void doneProcess(String id, ImageAttribute attr, Bitmap bitmap) {
+	private void doneProcess(String path, ImageAttribute attr, Bitmap bitmap) {
 		if (attr != null) {
 			ImageView view = attr.getView();
-			if (view != null) {
-				if(attr.viewAttr != null)
-					view.setScaleType(attr.viewAttr.doneScaleType);
-				view.setImageBitmap(bitmap);
-				if (attr.viewAttr.backgroundResId != -1)
-					view.setBackgroundResource(attr.viewAttr.backgroundResId);
-			} else if (view == null) {
-			}
+			updateView(view, attr, bitmap);
 			if(attr.mCallback != null) {
-				ImageManagerCallback(onIndividualDoneCallback(attr.mCallback, id, bitmap));
+				attr.mCallback.imageDone(attr.mParam, bitmap);
 				attr.mCallback = null;
 			}
 		}
-		
+	}
+	
+	private void updateView(ImageView view, ImageAttribute attr, Bitmap bitmap) {
+		if (view != null) {
+			if (bitmap != null) {
+				if (attr.viewAttr != null)
+					view.setScaleType(attr.viewAttr.doneScaleType);
+				if (attr.shouldApplyWithAnimation())
+					setImage(view, bitmap);
+				else
+					view.setImageBitmap(bitmap);
+			} else {
+				if (attr.viewAttr != null && attr.viewAttr.failResId != -1) {
+					view.setScaleType(attr.viewAttr.failScaleType);
+					view.setImageResource(attr.viewAttr.failResId);
+				}
+			}
+		}
 	}
 
 	private Bitmap getDrawableBitmap(Drawable drawable, ImageAttribute attr) {
@@ -373,46 +332,23 @@ public class ImageManager implements ImageFileBasicOperation{
 
 		@Override
 		protected void onPostExecute(Bitmap bitmap) {
-			if (bitmap == null) {
+			GetImageTask task = getTask(mAttr.getView());
+			Log.d(TAG, "onPostExecute: " + mUrl.getUniquePath());
+			if (task == this && mAttr != null && mAttr.getView() != null
+					&& mSkipUpdateView == false) {
 				if(DEBUG) {
-					if (mAttr == null)
-						Log.e(TAG, "GetImageTask : " + mImageId + " is null(url=" + mUrl + ")");
-					else
-						Log.e(TAG, "GetImageTask : " + mImageId + " is null(url=" + mUrl
-								+ " attr=" + mAttr.getStringAttr() + ").");
+					Log.d(TAG, "handle");
 				}
-				updateView(null);
+				doneProcess(mUrl.getUniquePath(), mAttr, bitmap);
 			} else {
-				if (mAttr != null && mAttr.getView() != null
-						&& mSkipUpdateView == false) {
-					if (DEBUG)
-						Log.d(TAG, "skip view");
-					updateView(bitmap);
-				}
-			}
-
-			ImageManagerCallback(onDownloadedCallback(mImageId, mUrl.getDownloadUrl()));
-			ImageManagerCallback(onDoneCallback(mImageId, bitmap));
-		}
-
-		private void updateView(Bitmap bitmap) {
-			ImageView view = mAttr.getView();
-			if (view != null) {
-				GetImageTask task = getTask(view);
-				if (task == this) {
-					if(bitmap != null) {
-						if(mAttr.viewAttr != null)
-							view.setScaleType(mAttr.viewAttr.doneScaleType);
-						if (mAttr.shouldApplyWithAnimation())
-							setImage(view, bitmap);
-						else
-							view.setImageBitmap(bitmap);
-					} else {
-						if(mAttr.viewAttr != null && mAttr.viewAttr.failResId != -1) {
-							view.setScaleType(mAttr.viewAttr.failScaleType);
-							view.setImageResource(mAttr.viewAttr.failResId);
-						}
-					}
+				if(DEBUG) {
+					Log.d(TAG, "skip");
+					if(task != this)
+						Log.d(TAG, "task target change");
+					if(mAttr == null)
+						Log.d(TAG, "mAttr == null");
+					if(mAttr!=null && mAttr.getView() == null)
+						Log.d(TAG, "imageview == null");
 				}
 			}
 		}
@@ -577,95 +513,8 @@ public class ImageManager implements ImageFileBasicOperation{
 		return mWritableDb.insert(ImageTable.TABLE_NAME, "", cv);
 	}
 
-	private static Handler mHandler = new Handler() {
-		public void handleMessage(android.os.Message msg) {
-			switch (msg.what) {
-			case IMAGE_MANAGER_CALLBACK:
-				((Runnable) msg.obj).run();
-				break;
-			}
-		}
-	};
-
-	private static ArrayList<ImageDoneCallback> mDoneCallbackList;
-	private static ArrayList<ImageDownloadedCallback> mDownloadedCallbackList;
-
 	public interface ImageDoneCallback {
-		public void imageDone(String id, Bitmap bitmap);
-	}
-	
-	public interface ImageDownloadedCallback {
-		public void imageDonwnloaded(String id, String url);
-	}
-
-	protected void ImageManagerCallback(Runnable callback) {
-		if (callback == null) {
-			throw new NullPointerException();
-		}
-		Message message = Message.obtain();
-		message.what = IMAGE_MANAGER_CALLBACK;
-		message.obj = callback;
-		mHandler.sendMessage(message);
-	}
-	
-	protected Runnable onIndividualDoneCallback(final ImageDoneCallback callback, final String id, final Bitmap bitmap) {
-		return new Runnable() {
-			public void run() {
-				callback.imageDone(id, bitmap);
-			}
-		};
-	}
-
-	protected Runnable onDoneCallback(final String id, final Bitmap bitmap) {
-		return new Runnable() {
-			public void run() {
-				if (mDoneCallbackList != null) {
-					for (int i = 0; i < mDoneCallbackList.size(); ++i) {
-						ImageDoneCallback cb = mDoneCallbackList.get(i);
-						cb.imageDone(id, bitmap);
-					}
-				}
-			}
-		};
-	}
-	
-	protected Runnable onDownloadedCallback(final String id, final String url) {
-		return new Runnable() {
-			public void run() {
-				if (mDownloadedCallbackList != null) {
-					for (int i = 0; i < mDownloadedCallbackList.size(); ++i) {
-						ImageDownloadedCallback cb = mDownloadedCallbackList.get(i);
-						cb.imageDonwnloaded(id, url);
-					}
-				}
-			}
-		};
-	}
-
-	public void registerDoneCallback(ImageDoneCallback cb) {
-		if (mDoneCallbackList != null && cb != null) {
-			mDoneCallbackList.add(cb);
-		}
-	}
-
-	public void removeDoneCallback(ImageDoneCallback cb) {
-		if (mDoneCallbackList != null) {
-			if (mDoneCallbackList.indexOf(cb) >= 0)
-				mDoneCallbackList.remove(cb);
-		}
-	}
-	
-	public void registerDownloadedCallback(ImageDownloadedCallback cb) {
-		if (mDownloadedCallbackList != null && cb != null) {
-			mDownloadedCallbackList.add(cb);
-		}
-	}
-
-	public void removeDownloadedCallback(ImageDownloadedCallback cb) {
-		if (mDownloadedCallbackList != null) {
-			if (mDownloadedCallbackList.indexOf(cb) >= 0)
-				mDownloadedCallbackList.remove(cb);
-		}
+		public void imageDone(Object id, Bitmap bitmap);
 	}
 
 	private static final int HARD_CACHE_CAPACITY = 10 * 1024 * 1024;
