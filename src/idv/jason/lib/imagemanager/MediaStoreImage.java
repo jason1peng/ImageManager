@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.provider.MediaStore;
+import android.util.Log;
 
 public class MediaStoreImage extends BaseImage{
 	public static final String TAG = MediaStoreImage.class.getSimpleName();
@@ -33,6 +34,7 @@ public class MediaStoreImage extends BaseImage{
 	}
 	
 	public Bitmap getBitmap() {
+		Log.d(TAG, "get media store image:" + mId);
 		if (mBitmap != null) {
 			return mBitmap;
 		}

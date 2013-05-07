@@ -46,14 +46,11 @@ public class ImageManager implements ImageFileBasicOperation{
 	
 	public static final String TAG = ImageManager.class.getSimpleName();
 
-	private static boolean DEBUG = true;
-	private static boolean DEBUG_CACHE = true;
+	private static boolean DEBUG = false;
+	private static boolean DEBUG_CACHE = false;
+	private static boolean DEBUG_BUFFER = false;
+	private static boolean DEBUG_URL = false;
 	
-	public static final int DEBUG_FLAG_ALL 		= 1;
-	public static final int DEBUG_FLAG_NORMAL 	= 2;
-	public static final int DEBUG_FLAG_URL 		= 4;
-	public static final int DEBUG_FLAG_CACHE 	= 8;
-
 	private static final int IMAGE_MANAGER_CALLBACK = 100;
 	
 	private Context mContext;
@@ -83,15 +80,6 @@ public class ImageManager implements ImageFileBasicOperation{
 		mSingleThreadExecutor = Executors.newSingleThreadExecutor(new ImageManagerThreadFactory(THREAD_FILTERS));
 		mLocalThreadExecutor = Executors.newFixedThreadPool(5, new ImageManagerThreadFactory(THREAD_MEDIASTORE));
 		setDownloadPath(null);
-	}
-	
-	public void setDebugFlag(int flag) {
-		if((flag & DEBUG_FLAG_ALL) == DEBUG_FLAG_ALL)
-			DEBUG = DEBUG_CACHE = true;
-		if((flag & DEBUG_FLAG_NORMAL) == DEBUG_FLAG_NORMAL)
-			DEBUG = true;
-		if((flag & DEBUG_FLAG_CACHE) == DEBUG_FLAG_CACHE)
-			DEBUG_CACHE = true;
 	}
 	
 	public void setImageFactory(ImageFactory factory) {
@@ -128,6 +116,7 @@ public class ImageManager implements ImageFileBasicOperation{
 	class UrlInfo {
 		String path;
 		String url;
+		String imageId;
 		
 		public UrlInfo(String url) {
 			this.path = null;
@@ -139,6 +128,10 @@ public class ImageManager implements ImageFileBasicOperation{
 			this.url = url;
 		}
 		
+		public void setImageId(String id) {
+			imageId = id;
+		}
+		
 		public String getDownloadUrl() {
 			return url;
 		}
@@ -148,6 +141,10 @@ public class ImageManager implements ImageFileBasicOperation{
 				return url;
 			else
 				return path;
+		}
+		
+		public String getImageId() {
+			return imageId;
 		}
 		
 		public boolean isLocalFile() {
@@ -182,14 +179,14 @@ public class ImageManager implements ImageFileBasicOperation{
 		return setupGetProcess(new UrlInfo(url), attr);
 	}
 	
-	public Bitmap getMediaStoreImageThumbnail(String id, ImageAttribute attr) {
+	public Bitmap getMediaStoreImageThumbnail(String mediaStoreId, ImageAttribute attr) {
 		Bitmap bitmap = null;
-		UrlInfo info = new UrlInfo(MediaStoreImage.PREFIX + id);
+		UrlInfo info = new UrlInfo(MediaStoreImage.PREFIX + mediaStoreId);
 		if(attr != null && attr.shouldLoadFromThread()) {
-			getProcess(id, info, attr);
+			getProcess(mediaStoreId, info, attr);
 		} else {
 			removePotentialView(info.getUniquePath(), attr);
-			doneProcess(id, attr, bitmap);
+			doneProcess(mediaStoreId, attr, bitmap);
 		}
 		return bitmap;
 	}
@@ -297,10 +294,11 @@ public class ImageManager implements ImageFileBasicOperation{
 					view.setImageDrawable(downloadedDrawable);
 				}
 			}
+			if(DEBUG_URL)
+				Log.d(TAG, "getProcess: id=" + id + " url=" + url.getDownloadUrl());
 			if(attr != null && attr.filterPhoto != 0 && id != null)
 				task.executeOnExecutor(mSingleThreadExecutor, null, null, null);
 			else if(url.isLocalFile() || url.isMediaStoreFile() || id != null) {
-				Log.d(TAG, "local thread");
 				task.executeOnExecutor(mLocalThreadExecutor, null, null, null);
 			}
 			else
@@ -332,14 +330,19 @@ public class ImageManager implements ImageFileBasicOperation{
 		protected Bitmap doInBackground(Void... params) {
 			Bitmap bitmap = null;
 			try {
+				if(DEBUG)
+					Log.d(TAG, "handle image id = " + mImageId);
 				if(mImageId != null) {
 					// downloaded before, just need load it from thread
-					bitmap = getBitmapFromCache(mImageId, mAttr);
-					
-					if(bitmap == null) {
-						Log.d(TAG, "image [" + mImageId + "] file been deleted");
-						// if null means file been deleted from user, need process again
-						mWritableDb.delete(ImageTable.TABLE_NAME, ImageTable.COLUMN_ID + "=?", new String[] {mImageId});
+					if(mUrl.isMediaStoreFile())
+						bitmap = getBitmapFromMediaStore(mImageId, mAttr);
+					else {
+						bitmap = getBitmapFromCache(mImageId, mAttr);
+						if(bitmap == null) {
+							Log.d(TAG, "image [" + mImageId + "] file been deleted");
+							// if null means file been deleted from user, need process again
+							mWritableDb.delete(ImageTable.TABLE_NAME, ImageTable.COLUMN_ID + "=?", new String[] {mImageId});
+						}
 					}
 				}
 				
@@ -419,6 +422,37 @@ public class ImageManager implements ImageFileBasicOperation{
 			image.setImageDrawable(drawable);
 			drawable.startTransition(300);
 		}
+	}
+	
+	private Bitmap getBitmapFromMediaStore(String imageId, ImageAttribute attr) {
+
+		synchronized (sMemoryCache) {
+			final Bitmap bitmap = sMemoryCache.get(MediaStoreImage.PREFIX + imageId);
+			if (bitmap != null) {
+				if (DEBUG_CACHE)
+					Log.d(TAG, "memory cache");
+				// Bitmap found in hard cache
+				// Move element to first position, so that it is removed last
+				sMemoryCache.remove(MediaStoreImage.PREFIX + imageId);
+				sMemoryCache.put(MediaStoreImage.PREFIX + imageId, bitmap);
+				return bitmap;
+			}
+		}
+		MediaStoreImage image = new MediaStoreImage(mContext, MediaStoreImage.PREFIX + imageId);
+		try {
+			Bitmap bm = image.getBitmap();
+			if (bm != null) {
+				if (DEBUG_CACHE)
+					Log.d(TAG, "media store cache");
+				synchronized (sMemoryCache) {
+					sMemoryCache.put(MediaStoreImage.PREFIX + imageId, bm);
+				}
+				return bm;
+			}
+		} catch (OutOfMemoryError e) {
+			Log.e(TAG, "OutOfMemoryError", e);
+		}
+		return null;
 	}
 
 	private Bitmap getBitmapFromCache(String cacheIndex, ImageAttribute attr) {
@@ -637,7 +671,7 @@ public class ImageManager implements ImageFileBasicOperation{
 			HARD_CACHE_CAPACITY) {
 		protected int sizeOf(String key, Bitmap value) {
 			int size = (value.getRowBytes() * value.getHeight());
-			if (DEBUG)
+			if (DEBUG_BUFFER)
 				Log.d(TAG, "current size:" + size + " - " + this.size() + "/"
 						+ HARD_CACHE_CAPACITY);
 			return size;
@@ -646,7 +680,7 @@ public class ImageManager implements ImageFileBasicOperation{
 
 		protected void entryRemoved(boolean evicted, String key,
 				Bitmap oldValue, Bitmap newValue) {
-			if (DEBUG)
+			if (DEBUG_BUFFER)
 				Log.d(TAG, "entryRemoved:" + this.size() + "/"
 						+ HARD_CACHE_CAPACITY);
 		}
