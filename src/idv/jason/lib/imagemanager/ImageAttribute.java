@@ -4,6 +4,8 @@ import idv.jason.lib.imagemanager.ImageManager.ImageDoneCallback;
 
 import java.lang.ref.WeakReference;
 
+import android.content.Context;
+import android.util.DisplayMetrics;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 
@@ -167,7 +169,7 @@ public class ImageAttribute {
 	}
 	
 	public boolean containsAttribute() {
-		return defaultAttribute;
+		return !defaultAttribute;
 	}
 	
 	public ViewAttribute viewAttr;
@@ -245,5 +247,10 @@ public class ImageAttribute {
 		if(viewAttr != null)
 			return viewAttr.loadFromThread;
 		return false;
+	}
+	
+	public void setMaxSizeEqualsScreenSize(Context context) {
+		DisplayMetrics display = context.getResources().getDisplayMetrics();
+		setMaxSize(display.widthPixels, display.heightPixels);
 	}
 }
