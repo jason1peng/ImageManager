@@ -70,6 +70,10 @@ public class ImageFactory {
 			if(attr.filterPhoto != 0) {
 				image = new FilterImage(image, attr.filterPhoto);
 			}
+			
+			if(attr.reflection) {
+				image = new ReflectionImage(image);
+			}
 		}
 		return image;
 	}

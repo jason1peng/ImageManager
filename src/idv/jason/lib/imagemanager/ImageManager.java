@@ -382,7 +382,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				}
 				bitmap = image.getBitmap();
 				
-				imageId = setBitmapToFile(bitmap, url.getUniquePath(), attr==null?null:attr.getStringAttr(), attr==null?false:attr.hasAlpha());
+				imageId = setBitmapToFile(bitmap, url.getUniquePath(), attr==null?null:attr.getStringAttr(), attr==null?false:attr.highQuality());
 
 				setBitmapToCache(bitmap, imageId);
 			}

@@ -21,12 +21,13 @@ public class ImageAttribute {
 	
 	private int blurRadious = 0;
 	
-	private boolean hasAlpha = false;
 	private boolean highQuality = false;
 	
 	private boolean defaultAttribute = true;
 	
 	public int filterPhoto = 0;
+	
+	public boolean reflection = false;
 	
 	public ImageDoneCallback mCallback;
 	public Object mParam;
@@ -86,12 +87,12 @@ public class ImageAttribute {
 		return blurRadious;
 	}
 	
-	public boolean hasAlpha() {
-		return hasAlpha;
-	}
-	
 	public boolean highQuality() {
 		return highQuality;
+	}
+	
+	public boolean reflection() {
+		return reflection;
 	}
 	
 	public void setMaxSize(int width, int height) {
@@ -121,14 +122,14 @@ public class ImageAttribute {
 		defaultAttribute = false;
 	}
 	
-	public void setHasAlpha(boolean alpha) {
-		hasAlpha = alpha;
-		defaultAttribute = false;
-	}
-	
 
 	public void setHighQuality(boolean quality) {
 		highQuality = quality;
+		defaultAttribute = false;
+	}
+	
+	public void setReflection(boolean reflect) {
+		reflection = reflect;
 		defaultAttribute = false;
 	}
 	
@@ -139,7 +140,6 @@ public class ImageAttribute {
 		this.resizeWidth = attr.resizeWidth;
 		this.roundPixels = attr.roundPixels;
 		this.blendResId = attr.blendResId;
-		this.hasAlpha = attr.hasAlpha;
 		this.highQuality = attr.highQuality;
 		this.blurRadious = attr.blurRadious;
 		
@@ -159,11 +159,11 @@ public class ImageAttribute {
 		builder.append(resizeHeight);
 		builder.append(roundPixels);
 		builder.append(blendResId);
-		builder.append(hasAlpha);
 		builder.append(highQuality);
 		builder.append(blurRadious);
 
 		builder.append(filterPhoto);
+		builder.append(reflection);
 		
 		return builder.toString();
 	}
