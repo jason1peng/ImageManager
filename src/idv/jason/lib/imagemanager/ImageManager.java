@@ -131,13 +131,37 @@ public class ImageManager implements ImageFileBasicOperation{
 	}
 	
 	public Bitmap getImageWithoutThread(String url, ImageAttribute attr) {
+		return getImageWithoutThread(url, attr, true);
+	}
+	
+	public Bitmap getImageWithoutThread(String url, ImageAttribute attr, boolean loadBitmap) {
 		Bitmap bitmap = null;
 		String id = getImageId(url, attr);
-		if(id != null) {
-			bitmap = getBitmapFromCache(id, attr);
-		}
-		if(bitmap == null) {
-			bitmap = getBitmap(null, new UrlInfo(url), attr);
+		
+		if(loadBitmap) {
+			if(id != null) {
+				bitmap = getBitmapFromCache(id, attr);
+			}
+			if(bitmap == null) {
+				if(DEBUG_CACHE)
+					Log.d(TAG, "download new");
+				bitmap = getBitmap(null, new UrlInfo(url), attr);
+			} else {
+				if(DEBUG_CACHE)
+					Log.d(TAG, "exist in file");
+			}
+		} else {
+			// just make sure bitmap exist
+			if(id != null) {
+				if(new File(mDownloadPath, id).exists() == false) {
+					if(DEBUG_CACHE)
+						Log.d(TAG, "download new");
+					getBitmap(null, new UrlInfo(url), attr);
+				} else {
+					if(DEBUG_CACHE)
+						Log.d(TAG, "exist in file");
+				}
+			}
 		}
 		return bitmap;
 	}
