@@ -361,7 +361,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		if (bitmap != null) {
 			Drawable[] layers = new Drawable[2];
 			layers[0] = new ColorDrawable(Color.TRANSPARENT);
-			layers[1] = new BitmapDrawable(bitmap);
+			layers[1] = new BitmapDrawable(mContext.getResources(), bitmap);
 			TransitionDrawable drawable = new TransitionDrawable(layers);
 			image.setImageDrawable(drawable);
 			drawable.startTransition(300);

@@ -17,7 +17,22 @@ public class ResizeImage extends ImageDecorator{
 	@Override
 	public Bitmap getBitmap() {
 		if(mBitmap == null) {
-			mBitmap = ImageUtil.extractThumbnail(mImage.getBitmap(), mWidth, mHeight);
+			Bitmap bitmap = mImage.getBitmap();
+			if(bitmap != null) {
+				float ratio = (float)bitmap.getWidth() / (float)bitmap.getHeight();
+
+				int finalWidth = 0;
+				int finalHeight = 0;
+				if(bitmap.getWidth() > bitmap.getHeight()) {
+					finalWidth = mWidth;
+					finalHeight = (int) (finalWidth / ratio);
+				} else {
+					finalHeight = mHeight;
+					finalWidth = (int) (finalHeight * ratio);
+				}
+				
+				mBitmap = Bitmap.createScaledBitmap(bitmap, finalWidth, finalHeight, false);
+			}
 			return mBitmap;
 		} else {
 			return mBitmap;
