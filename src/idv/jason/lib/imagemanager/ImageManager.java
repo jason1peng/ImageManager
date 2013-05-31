@@ -170,7 +170,8 @@ public class ImageManager implements ImageFileBasicOperation{
 		Bitmap bitmap = null;
 		UrlInfo info = new UrlInfo(MediaStoreImage.PREFIX + mediaStoreId);
 		if(attr != null && attr.shouldLoadFromThread()) {
-			getProcess(mediaStoreId, info, attr);
+			String id = getImageId(info.getUniquePath(), attr);
+			getProcess(id, info, attr);
 		} else {
 			bitmap = getBitmapFromMediaStore(mediaStoreId, attr);
 			removePotentialView(info.getUniquePath(), attr);
@@ -478,7 +479,7 @@ public class ImageManager implements ImageFileBasicOperation{
 			LocalImage image = null;
 			image = new LocalImage(mContext, file.getAbsolutePath());
 			if(attr != null && attr.getMaxHeight() != 0 && attr.getMaxWidth() != 0) {
-				image.setImaggMaxSize(attr.getMaxHeight(), attr.getMaxWidth());
+				image.setImaggMaxSize(attr.getMaxWidth(), attr.getMaxHeight());
 				image.setHighQuality(attr.highQuality());
 			}
 			try {
@@ -544,15 +545,10 @@ public class ImageManager implements ImageFileBasicOperation{
 					ImageTable.COLUMN_IMAGE_URL + " =? AND " + ImageTable.COLUMN_ATTRIBUTE + " =? ",
 					new String[] { url, "NULL" }, null, null, ImageTable.DEFAULT_SORT_ORDER);
 		} else {
-			String imageId = MediaStoreImage.getId(url);
-			if(imageId != null) {
-				id = imageId;
-			} else {
-				c = mWritableDb.query(ImageTable.TABLE_NAME, 
-						new String[] { ImageTable.COLUMN_ID }, 
-						ImageTable.COLUMN_IMAGE_URL + " =? AND " + ImageTable.COLUMN_ATTRIBUTE + " =? ", 
-						new String[] { url , attr.getStringAttr() }, null, null, ImageTable.DEFAULT_SORT_ORDER);	
-			}
+			c = mWritableDb.query(ImageTable.TABLE_NAME, 
+			new String[] { ImageTable.COLUMN_ID }, 
+			ImageTable.COLUMN_IMAGE_URL + " =? AND " + ImageTable.COLUMN_ATTRIBUTE + " =? ", 
+			new String[] { url , attr.getStringAttr() }, null, null, ImageTable.DEFAULT_SORT_ORDER);	
 		}
 		if(c != null) {
 			if(c.getCount() > 0) {
