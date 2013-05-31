@@ -10,8 +10,8 @@ import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 
 public class ImageAttribute {
-	public int maxWidth = 0;
-	public int maxHeight = 0;
+	private int maxWidth = 0;
+	private int maxHeight = 0;
 	
 	private int resizeWidth = 0;
 	private int resizeHeight = 0;	
@@ -25,9 +25,9 @@ public class ImageAttribute {
 	
 	private boolean defaultAttribute = true;
 	
-	public int filterPhoto = 0;
+	private int filterPhoto = 0;
 	
-	public boolean reflection = false;
+	private boolean reflection = false;
 	
 	public ImageDoneCallback mCallback;
 	public Object mParam;
@@ -257,5 +257,13 @@ public class ImageAttribute {
 	public void setMaxSizeEqualsScreenSize(Context context) {
 		DisplayMetrics display = context.getResources().getDisplayMetrics();
 		setMaxSize(display.widthPixels, display.heightPixels);
+	}
+	
+	public int getFilter() {
+		return filterPhoto;
+	}
+	
+	public boolean isReflection() {
+		return reflection;
 	}
 }

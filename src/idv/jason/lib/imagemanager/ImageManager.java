@@ -301,7 +301,7 @@ public class ImageManager implements ImageFileBasicOperation{
 			}
 			if(DEBUG_URL)
 				Log.d(TAG, "getProcess: id=" + id + " url=" + url.getDownloadUrl());
-			if(attr != null && attr.filterPhoto != 0 && id != null)
+			if(attr != null && attr.getFilter() != 0 && id != null)
 				task.executeOnExecutor(mFilterThreadExecutor, null, null, null);
 			else if(url.isMediaStoreFile() && id != null) {
 				task.executeOnExecutor(mMediaStoreThreadExecutor, null, null, null);
@@ -477,8 +477,8 @@ public class ImageManager implements ImageFileBasicOperation{
 		if (file.exists()) {
 			LocalImage image = null;
 			image = new LocalImage(mContext, file.getAbsolutePath());
-			if(attr != null && attr.maxHeight != 0 && attr.maxWidth != 0) {
-				image.setImaggMaxSize(attr.maxWidth, attr.maxHeight);
+			if(attr != null && attr.getMaxHeight() != 0 && attr.getMaxWidth() != 0) {
+				image.setImaggMaxSize(attr.getMaxHeight(), attr.getMaxWidth());
 				image.setHighQuality(attr.highQuality());
 			}
 			try {

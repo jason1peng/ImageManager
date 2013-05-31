@@ -67,11 +67,11 @@ public class ImageFactory {
 				image = new Blur(image, attr.getBlurRadiout());
 			}
 			
-			if(attr.filterPhoto != 0) {
-				image = new FilterImage(image, attr.filterPhoto);
+			if(attr.getFilter() != 0) {
+				image = new FilterImage(image, attr.getFilter());
 			}
 			
-			if(attr.reflection) {
+			if(attr.isReflection()) {
 				image = new ReflectionImage(image);
 			}
 		}
