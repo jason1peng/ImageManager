@@ -133,6 +133,11 @@ public class ImageAttribute {
 		defaultAttribute = false;
 	}
 	
+	public void setFilter(int filter) {
+		filterPhoto = filter;
+		defaultAttribute = false;
+	}
+	
 	public ImageAttribute(ImageAttribute attr, ImageView view) {
 		this.maxHeight = attr.maxHeight;
 		this.maxWidth = attr.maxWidth;
