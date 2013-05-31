@@ -220,10 +220,17 @@ public class ImageManager implements ImageFileBasicOperation{
 			if (bitmap != null) {
 				if (attr.viewAttr != null)
 					view.setScaleType(attr.viewAttr.doneScaleType);
-				if (attr.shouldApplyWithAnimation())
-					setImage(view, bitmap);
-				else
-					view.setImageBitmap(bitmap);
+				try {
+					if (attr.shouldApplyWithAnimation())
+						setImage(view, bitmap);
+					else {
+						view.setImageBitmap(bitmap);
+					}
+				} catch (IllegalStateException e) {
+					// this happened when ImageView was destroyed by main UI thread 
+					// Just catch it and ignore this error -- 2013-05-31 Camge
+					e.printStackTrace();
+				}
 			} else {
 				if (attr.viewAttr != null && attr.viewAttr.failResId != -1) {
 					view.setScaleType(attr.viewAttr.failScaleType);
