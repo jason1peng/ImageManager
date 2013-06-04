@@ -556,12 +556,28 @@ public class ImageManager implements ImageFileBasicOperation{
 	}
 	
 	public long setImageExist(String url, String attr) {
-		ContentValues cv = new ContentValues();
-		cv.put(ImageTable.COLUMN_IMAGE_URL, url);
-		cv.put(ImageTable.COLUMN_ATTRIBUTE, TextUtils.isEmpty(attr)?"NULL":attr);
-		cv.put(ImageTable.COLUMN_ACCESS_TIME, Calendar.getInstance().getTime().toGMTString());
-		return mWritableDb.insert(ImageTable.TABLE_NAME, "", cv);
-	}
+		long DBId = -1;
+		Cursor cursor = mWritableDb.query(ImageTable.TABLE_NAME,
+				new String[] { ImageTable.COLUMN_ID },
+				ImageTable.COLUMN_IMAGE_URL + "=? AND "
+						+ ImageTable.COLUMN_ATTRIBUTE + "=?", new String[] {
+						url, TextUtils.isEmpty(attr) ? "NULL" : attr }, null,
+				null, null);
+		if (cursor != null && cursor.getCount() > 0) {
+			cursor.moveToFirst();
+			DBId = cursor.getLong(0);
+			cursor.close();
+		} else {
+			ContentValues cv = new ContentValues();
+			cv.put(ImageTable.COLUMN_IMAGE_URL, url);
+			cv.put(ImageTable.COLUMN_ATTRIBUTE,
+					TextUtils.isEmpty(attr) ? "NULL" : attr);
+			cv.put(ImageTable.COLUMN_ACCESS_TIME, Calendar.getInstance()
+					.getTime().toGMTString());
+			DBId = mWritableDb.insert(ImageTable.TABLE_NAME, "", cv);
+		}
+		return DBId;
+	}	
 
 	public interface ImageDoneCallback {
 		public void imageDone(Object id, Bitmap bitmap);
