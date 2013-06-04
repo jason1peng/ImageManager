@@ -80,6 +80,22 @@ public class ImageManager implements ImageFileBasicOperation{
 		mFactory = factory;
 		mFactory.setImageBasicOperation(this);
 	}
+	
+	public static void enableDebugLog(boolean verbose) {
+		DEBUG = true;
+		if (verbose) {
+			DEBUG_CACHE = true;
+			DEBUG_BUFFER = true;
+			DEBUG_URL = true;
+		}
+	}
+	
+	public static void disableDebugLog() {
+		DEBUG = false;
+		DEBUG_CACHE = false;
+		DEBUG_BUFFER = false;
+		DEBUG_URL = false;
+	}	
 
 	public void setDownloadPath(String path) {
 		if (path != null && path.length() > 0) {
@@ -170,10 +186,9 @@ public class ImageManager implements ImageFileBasicOperation{
 		Bitmap bitmap = null;
 		UrlInfo info = new UrlInfo(MediaStoreImage.PREFIX + mediaStoreId);
 		if(attr != null && attr.shouldLoadFromThread()) {
-			String id = getImageId(info.getUniquePath(), attr);
-			getProcess(id, info, attr);
+			getProcess(null, info, attr);
 		} else {
-			bitmap = getBitmapFromMediaStore(mediaStoreId, attr);
+			bitmap = getBitmapFromMediaStore(info, attr);
 			removePotentialView(info.getUniquePath(), attr);
 			doneProcess(info.getUniquePath(), attr, bitmap);
 		}
@@ -302,11 +317,11 @@ public class ImageManager implements ImageFileBasicOperation{
 			}
 			if(DEBUG_URL)
 				Log.d(TAG, "getProcess: id=" + id + " url=" + url.getDownloadUrl());
-			if(attr != null && attr.getFilter() != 0 && id != null)
+			if(attr != null && attr.getFilter() != 0)
 				task.executeOnExecutor(mFilterThreadExecutor, null, null, null);
-			else if(url.isMediaStoreFile() && id != null) {
+			else if(url.isMediaStoreFile()) {
 				task.executeOnExecutor(mMediaStoreThreadExecutor, null, null, null);
-			} else if(url.isLocalFile()  && id != null) {
+			} else if(url.isLocalFile()) {
 				task.executeOnExecutor(mLocalThreadExecutor, null, null, null);
 			}
 			else
@@ -380,18 +395,14 @@ public class ImageManager implements ImageFileBasicOperation{
 		Bitmap bitmap = null;
 		try {
 			if(DEBUG)
-				Log.d(TAG, "handle image id = " + imageId);
-			if(imageId != null) {
+				Log.d(TAG, "getBitmap() cacheId="+imageId+" url="+url.getDownloadUrl());
+			if(imageId != null && url.isMediaStoreFile()==false) {
 				// downloaded before, just need load it from thread
-				if(url.isMediaStoreFile())
-					bitmap = getBitmapFromMediaStore(imageId, attr);
-				else {
-					bitmap = getBitmapFromCache(imageId, attr);
-					if(bitmap == null) {
-						Log.d(TAG, "image [" + imageId + "] file been deleted");
-						// if null means file been deleted from user, need process again
-						mWritableDb.delete(ImageTable.TABLE_NAME, ImageTable.COLUMN_ID + "=?", new String[] {imageId});
-					}
+				bitmap = getBitmapFromCache(imageId, attr);
+				if(bitmap == null) {
+					Log.d(TAG, "image [" + imageId + "] file been deleted");
+					// if null means file been deleted from user, need process again
+					mWritableDb.delete(ImageTable.TABLE_NAME, ImageTable.COLUMN_ID + "=?", new String[] {imageId});
 				}
 			}
 			
@@ -408,15 +419,12 @@ public class ImageManager implements ImageFileBasicOperation{
 					}
 					image = mFactory.postProcessImage(mContext,  url.getDownloadUrl(), attr, image);
 				}
-				if(bitmap == null) {
-					if(DEBUG_CACHE)
-						Log.d(TAG, "new");
-				}
 				bitmap = image.getBitmap();
-				
-				imageId = setBitmapToFile(bitmap, url.getUniquePath(), attr==null?null:attr.getStringAttr(), attr==null?false:attr.highQuality());
-
-				setBitmapToCache(bitmap, imageId);
+				if(url.isMediaStoreFile()==false) {
+					// do not cache thumbnails come from MediaStore 
+					imageId = setBitmapToFile(bitmap, url.getUniquePath(), attr==null?null:attr.getStringAttr(), attr==null?false:attr.highQuality());
+					setBitmapToCache(bitmap, imageId);
+				}
 			}
 		} catch (OutOfMemoryError e) {
 			Log.e(TAG, "OutOfMemoryError", e);
@@ -425,30 +433,14 @@ public class ImageManager implements ImageFileBasicOperation{
 		return bitmap;
 	}
 	
-	private Bitmap getBitmapFromMediaStore(String imageId, ImageAttribute attr) {
-
-		synchronized (sMemoryCache) {
-			final Bitmap bitmap = sMemoryCache.get(MediaStoreImage.PREFIX + imageId);
-			if (bitmap != null) {
-				if (DEBUG_CACHE)
-					Log.d(TAG, "memory cache");
-				// Bitmap found in hard cache
-				// Move element to first position, so that it is removed last
-				sMemoryCache.remove(MediaStoreImage.PREFIX + imageId);
-				sMemoryCache.put(MediaStoreImage.PREFIX + imageId, bitmap);
-				return bitmap;
-			}
-		}
-		MediaStoreImage image = new MediaStoreImage(mContext, MediaStoreImage.PREFIX + imageId);
+	private Bitmap getBitmapFromMediaStore(UrlInfo url, ImageAttribute attr) {
+		MediaStoreImage image = new MediaStoreImage(mContext, url.getUniquePath());
 		try {
 			Bitmap bm = image.getBitmap();
 			if (bm != null) {
-				if (DEBUG_CACHE)
-					Log.d(TAG, "media store cache");
-				synchronized (sMemoryCache) {
-					sMemoryCache.put(MediaStoreImage.PREFIX + imageId, bm);
-				}
 				return bm;
+			} else {
+				Log.w(TAG, "get bitmap from MediaStore failed url="+url.getUniquePath());
 			}
 		} catch (OutOfMemoryError e) {
 			Log.e(TAG, "OutOfMemoryError", e);
@@ -465,7 +457,7 @@ public class ImageManager implements ImageFileBasicOperation{
 			final Bitmap bitmap = sMemoryCache.get(cacheIndex);
 			if (bitmap != null) {
 				if (DEBUG_CACHE)
-					Log.d(TAG, "memory cache");
+					Log.d(TAG, "get bitmap from memory cache: "+cacheIndex);
 				// Bitmap found in hard cache
 				// Move element to first position, so that it is removed last
 				sMemoryCache.remove(cacheIndex);
@@ -486,7 +478,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				Bitmap bm = image.getBitmap();
 				if (bm != null) {
 					if (DEBUG_CACHE)
-						Log.d(TAG, "file cache");
+						Log.d(TAG, "get bitmap from file cache: "+file.getAbsolutePath());
 					synchronized (sMemoryCache) {
 						sMemoryCache.put(cacheIndex, bm);
 					}
@@ -502,8 +494,8 @@ public class ImageManager implements ImageFileBasicOperation{
 	private void setBitmapToCache(Bitmap bitmap, String cacheIndex) {
 		if(bitmap == null)
 			return;
-		if (DEBUG) {
-			Log.d(TAG, "add filename:" + cacheIndex);
+		if (DEBUG_CACHE) {
+			Log.d(TAG, "add memory cache, index:" + cacheIndex);
 		}
 		synchronized (sMemoryCache) {
 			if(sMemoryCache.get(cacheIndex) == null) {
@@ -529,6 +521,9 @@ public class ImageManager implements ImageFileBasicOperation{
 				bitmap.compress(Bitmap.CompressFormat.PNG, 90, out);
 			else
 				bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+			if (DEBUG_CACHE) {
+				Log.d(TAG, "setBitmapToFile() filename:" + file.getAbsolutePath());
+			}
 		} catch (FileNotFoundException e) {
 			Log.e(TAG, e.getMessage());
 		}
