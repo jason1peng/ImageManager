@@ -19,10 +19,12 @@ public class FilterImage extends ImageDecorator{
 		if(mBitmap == null) {
 			Bitmap bitmap = mImage.getBitmap();
 			if(bitmap != null) {
-				PhotoProcessing.sendBitmapToNative(bitmap);
-				bitmap.recycle();
-				PhotoProcessing.filterPhoto(mFilterId);
-				return PhotoProcessing.getBitmapFromNative(null);
+				synchronized (PhotoProcessing.class) {
+					PhotoProcessing.sendBitmapToNative(bitmap);
+					bitmap.recycle();
+					PhotoProcessing.filterPhoto(mFilterId);
+					return PhotoProcessing.getBitmapFromNative(null);
+				}
 			} else {
 				return null;
 			}
