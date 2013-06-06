@@ -160,22 +160,22 @@ public class ImageManager implements ImageFileBasicOperation{
 			}
 			if(bitmap == null) {
 				if(DEBUG_CACHE)
-					Log.d(TAG, "download new");
+					Log.v(TAG, "download new");
 				bitmap = getBitmap(null, new UrlInfo(url), attr);
 			} else {
 				if(DEBUG_CACHE)
-					Log.d(TAG, "exist in file");
+					Log.v(TAG, "exist in file");
 			}
 		} else {
 			// just make sure bitmap exist
 			if(id != null) {
 				if(new File(mDownloadPath, id).exists() == false) {
 					if(DEBUG_CACHE)
-						Log.d(TAG, "download new");
+						Log.v(TAG, "download new");
 					getBitmap(null, new UrlInfo(url), attr);
 				} else {
 					if(DEBUG_CACHE)
-						Log.d(TAG, "exist in file");
+						Log.v(TAG, "exist in file");
 				}
 			}
 		}
@@ -221,6 +221,9 @@ public class ImageManager implements ImageFileBasicOperation{
 	}
 
 	private void doneProcess(String path, ImageAttribute attr, Bitmap bitmap) {
+		if(DEBUG) {
+			Log.v(TAG, "doneProcess " + path);
+		}
 		if (attr != null) {
 			ImageView view = attr.getView();
 			updateView(view, attr, bitmap);
@@ -262,7 +265,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		Bitmap bm = getBitmapFromCache(cacheIndex, attr);
 		if (bm == null) {
 			if(DEBUG)
-				Log.d(TAG, "getDrawableBitmap : generate");
+				Log.v(TAG, "getDrawableBitmap : generate");
 			if (attr.getMaxHeight() == 0 || attr.getMaxWidth() == 0) {
 				bm = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_4444);
 				bm.eraseColor(Color.TRANSPARENT);
@@ -277,7 +280,7 @@ public class ImageManager implements ImageFileBasicOperation{
 			setBitmapToCache(bm, cacheIndex);
 		} else {
 			if(DEBUG)
-				Log.d(TAG, "getDrawableBitmap : use cache");
+				Log.v(TAG, "getDrawableBitmap : use cache");
 		}
 		return bm;
 	}
@@ -316,7 +319,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				}
 			}
 			if(DEBUG_URL)
-				Log.d(TAG, "getProcess: id=" + id + " url=" + url.getDownloadUrl());
+				Log.v(TAG, "getProcess: id=" + id + " url=" + url.getDownloadUrl());
 			if(attr != null && attr.getFilter() != 0)
 				task.executeOnExecutor(mFilterThreadExecutor, null, null, null);
 			else if(url.isMediaStoreFile()) {
@@ -359,22 +362,19 @@ public class ImageManager implements ImageFileBasicOperation{
 		protected void onPostExecute(Bitmap bitmap) {
 			GetImageTask task = getTask(mAttr.getView());
 			if(DEBUG)
-				Log.d(TAG, "onPostExecute: " + mUrl.getUniquePath());
+				Log.v(TAG, "onPostExecute: " + mUrl.getUniquePath());
 			if (task == this && mAttr != null && mAttr.getView() != null
 					&& mSkipUpdateView == false) {
-				if(DEBUG) {
-					Log.d(TAG, "handle");
-				}
 				doneProcess(mUrl.getUniquePath(), mAttr, bitmap);
 			} else {
 				if(DEBUG) {
-					Log.d(TAG, "skip");
+					Log.v(TAG, "skip");
 					if(task != this)
-						Log.d(TAG, "task target change");
+						Log.v(TAG, "task target change");
 					if(mAttr == null)
-						Log.d(TAG, "mAttr == null");
+						Log.v(TAG, "mAttr == null");
 					if(mAttr!=null && mAttr.getView() == null)
-						Log.d(TAG, "imageview == null");
+						Log.v(TAG, "imageview == null");
 				}
 			}
 		}
@@ -395,7 +395,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		Bitmap bitmap = null;
 		try {
 			if(DEBUG)
-				Log.d(TAG, "getBitmap() cacheId="+imageId+" url="+url.getDownloadUrl());
+				Log.v(TAG, "getBitmap() cacheId="+imageId+" url="+url.getDownloadUrl());
 			if(imageId != null && url.isMediaStoreFile()==false) {
 				// downloaded before, just need load it from thread
 				bitmap = getBitmapFromCache(imageId, attr);
@@ -414,7 +414,7 @@ public class ImageManager implements ImageFileBasicOperation{
 					bitmap = getBitmapFromCache(pureId, attr);
 					if(bitmap != null) {
 						if(DEBUG_CACHE)
-							Log.d(TAG, "modify from origin");
+							Log.v(TAG, "modify from origin");
 						image.setBitmap(bitmap);
 					}
 					image = mFactory.postProcessImage(mContext,  url.getDownloadUrl(), attr, image);
@@ -457,7 +457,7 @@ public class ImageManager implements ImageFileBasicOperation{
 			final Bitmap bitmap = sMemoryCache.get(cacheIndex);
 			if (bitmap != null) {
 				if (DEBUG_CACHE)
-					Log.d(TAG, "get bitmap from memory cache: "+cacheIndex);
+					Log.v(TAG, "get bitmap from memory cache: "+cacheIndex);
 				// Bitmap found in hard cache
 				// Move element to first position, so that it is removed last
 				sMemoryCache.remove(cacheIndex);
@@ -478,7 +478,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				Bitmap bm = image.getBitmap();
 				if (bm != null) {
 					if (DEBUG_CACHE)
-						Log.d(TAG, "get bitmap from file cache: "+file.getAbsolutePath());
+						Log.v(TAG, "get bitmap from file cache: "+file.getAbsolutePath());
 					synchronized (sMemoryCache) {
 						sMemoryCache.put(cacheIndex, bm);
 					}
@@ -495,7 +495,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		if(bitmap == null)
 			return;
 		if (DEBUG_CACHE) {
-			Log.d(TAG, "add memory cache, index:" + cacheIndex);
+			Log.v(TAG, "add memory cache, index:" + cacheIndex);
 		}
 		synchronized (sMemoryCache) {
 			if(sMemoryCache.get(cacheIndex) == null) {
@@ -522,7 +522,7 @@ public class ImageManager implements ImageFileBasicOperation{
 			else
 				bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
 			if (DEBUG_CACHE) {
-				Log.d(TAG, "setBitmapToFile() filename:" + file.getAbsolutePath());
+				Log.v(TAG, "setBitmapToFile() filename:" + file.getAbsolutePath());
 			}
 		} catch (FileNotFoundException e) {
 			Log.e(TAG, e.getMessage());
@@ -592,7 +592,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		protected int sizeOf(String key, Bitmap value) {
 			int size = (value.getRowBytes() * value.getHeight());
 			if (DEBUG_BUFFER)
-				Log.d(TAG, "current size:" + size + " - " + this.size() + "/"
+				Log.v(TAG, "current size:" + size + " - " + this.size() + "/"
 						+ HARD_CACHE_CAPACITY);
 			return size;
 
@@ -601,7 +601,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		protected void entryRemoved(boolean evicted, String key,
 				Bitmap oldValue, Bitmap newValue) {
 			if (DEBUG_BUFFER)
-				Log.d(TAG, "entryRemoved:" + this.size() + "/"
+				Log.v(TAG, "entryRemoved:" + this.size() + "/"
 						+ HARD_CACHE_CAPACITY);
 		}
 	};
@@ -676,7 +676,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		if (task != null) {
 			if (!task.getDownloadPath().equals(path)) {
 				if (DEBUG) {
-					Log.d(TAG, "should skip");
+					Log.v(TAG, "should skip");
 				}
 				task.setSkipUpdateView();
 			} else
