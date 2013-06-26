@@ -43,10 +43,10 @@ public class ImageUtil {
 					.getAttribute(ExifInterface.TAG_ORIENTATION);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			Log.d(TAG, e.getLocalizedMessage());
+			Log.w(TAG, e.getLocalizedMessage());
 		} catch (IOException e) {
 			e.printStackTrace();
-			Log.d(TAG, e.getLocalizedMessage());
+			Log.w(TAG, e.getLocalizedMessage());
 		}
 		Bitmap tempMap = BitmapFactory.decodeFile(strImageName, options);
 
