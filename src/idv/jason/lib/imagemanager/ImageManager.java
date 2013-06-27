@@ -12,10 +12,17 @@ import idv.jason.lib.imagemanager.db.DatabaseHelper;
 import idv.jason.lib.imagemanager.db.ImageTable;
 import idv.jason.lib.imagemanager.util.LifoAsyncTask;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.ref.WeakReference;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -175,7 +182,12 @@ public class ImageManager implements ImageFileBasicOperation{
 				if(DEBUG_CACHE)
 					Log.v(TAG, "download new");
 				
-				getBitmap(null, new UrlInfo(url), attr);
+				UrlInfo ui = new UrlInfo(url);
+				
+				if(ui.isInternetFile())
+					downloadRawBitmap(ui);
+				else
+					getBitmap(null, ui, attr);
 			}
 		}
 		return bitmap;
@@ -409,6 +421,47 @@ public class ImageManager implements ImageFileBasicOperation{
 			image.setImageDrawable(drawable);
 			drawable.startTransition(300);
 		}
+	}
+
+	private void downloadRawBitmap(UrlInfo url) {
+		URL drl;
+		try {
+			drl = new URL(url.getDownloadUrl());
+			URLConnection connection = drl.openConnection();
+			connection.connect();
+			// this will be useful so that you can show a typical 0-100%
+			// progress bar
+			int fileLength = connection.getContentLength();
+
+			// download the file
+			
+			String id = Long.toString(setImageExist(url.getUniquePath(), null));
+
+			File file = new File(mDownloadPath, id);
+			
+			InputStream input = new BufferedInputStream(drl.openStream());
+			OutputStream output = new FileOutputStream(
+					file.getAbsoluteFile());
+
+			byte data[] = new byte[1024];
+			long total = 0;
+			int count;
+			while ((count = input.read(data)) != -1) {
+				total += count;
+				output.write(data, 0, count);
+			}
+
+			output.flush();
+			output.close();
+			input.close();
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 	
 	private Bitmap getBitmap(String imageId, UrlInfo url, ImageAttribute attr) {

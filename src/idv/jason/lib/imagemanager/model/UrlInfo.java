@@ -44,4 +44,8 @@ public class UrlInfo {
 	public boolean isMediaStoreFile() {
 		return url.contains(MediaStoreImage.PREFIX);
 	}
+	
+	public boolean isInternetFile() {
+		return url.contains("http") || url.contains("https"); 
+	}
 }
