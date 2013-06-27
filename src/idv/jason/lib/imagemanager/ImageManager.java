@@ -168,16 +168,33 @@ public class ImageManager implements ImageFileBasicOperation{
 			}
 		} else {
 			// just make sure bitmap exist
-			if(id != null) {
-				if(new File(mDownloadPath, id).exists() == false) {
-					if(DEBUG_CACHE)
-						Log.v(TAG, "download new");
-					getBitmap(null, new UrlInfo(url), attr);
-				} else {
-					if(DEBUG_CACHE)
-						Log.v(TAG, "exist in file");
-				}
+			if( id != null && new File(mDownloadPath, id).exists() == true) {
+				if(DEBUG_CACHE)
+					Log.v(TAG, "exist in file");
+			} else {
+				if(DEBUG_CACHE)
+					Log.v(TAG, "download new");
+				
+				getBitmap(null, new UrlInfo(url), attr);
 			}
+		}
+		return bitmap;
+	}
+	
+	public Bitmap getLocalVideoThumbnailWithoutThread(String path, ImageAttribute attr, boolean loadBitmap) {
+		return getImageWithoutThread(LocalVideoImage.PREFIX + path, attr, loadBitmap);
+	}
+	
+	public Bitmap getLocalVideoThumbnail(String path, ImageAttribute attr) {
+		Bitmap bitmap = null;
+		UrlInfo info = new UrlInfo(LocalVideoImage.PREFIX + path);
+		String id = getImageId(info.getUniquePath(), attr);
+		if(id == null || (attr != null && attr.shouldLoadFromThread())) {
+			getProcess(id, info, attr);
+		} else {
+			bitmap = getBitmapFromCache(id, attr);
+			removePotentialView(info.getUniquePath(), attr);
+			doneProcess(info.getUniquePath(), attr, bitmap);
 		}
 		return bitmap;
 	}
@@ -360,7 +377,10 @@ public class ImageManager implements ImageFileBasicOperation{
 
 		@Override
 		protected void onPostExecute(Bitmap bitmap) {
-			GetImageTask task = getTask(mAttr.getView());
+			GetImageTask task = null;
+			
+			if(mAttr != null)
+				task = getTask(mAttr.getView());
 			if(DEBUG)
 				Log.v(TAG, "onPostExecute: " + mUrl.getUniquePath());
 			if (task == this && mAttr != null && mAttr.getView() != null
@@ -400,7 +420,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				// downloaded before, just need load it from thread
 				bitmap = getBitmapFromCache(imageId, attr);
 				if(bitmap == null) {
-					Log.d(TAG, "image [" + imageId + "] file been deleted");
+					Log.e(TAG, "image [" + imageId + "] file been deleted");
 					// if null means file been deleted from user, need process again
 					mWritableDb.delete(ImageTable.TABLE_NAME, ImageTable.COLUMN_ID + "=?", new String[] {imageId});
 				}
@@ -416,13 +436,16 @@ public class ImageManager implements ImageFileBasicOperation{
 						if(DEBUG_CACHE)
 							Log.v(TAG, "modify from origin");
 						image.setBitmap(bitmap);
+					} else {
+						if(DEBUG_CACHE)
+							Log.v(TAG, "no exist, download new");
 					}
 					image = mFactory.postProcessImage(mContext,  url.getDownloadUrl(), attr, image);
 				}
 				bitmap = image.getBitmap();
 				if(url.isMediaStoreFile()==false) {
 					// do not cache thumbnails come from MediaStore 
-					imageId = setBitmapToFile(bitmap, url.getUniquePath(), attr==null?null:attr.getStringAttr(), attr==null?false:attr.highQuality());
+					imageId = setBitmapToFile(bitmap, url.getUniquePath(), attr);
 					setBitmapToCache(bitmap, imageId);
 				}
 			}
@@ -507,7 +530,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		}
 	}
 	
-	public String setBitmapToFile(Bitmap bitmap, String url, String attr, boolean hasAlpha) {
+	public String setBitmapToFile(Bitmap bitmap, String url, ImageAttribute attr) {
 		if(bitmap == null)
 			return null;
 		
@@ -517,7 +540,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		FileOutputStream out;
 		try {
 			out = new FileOutputStream(file);
-			if(hasAlpha)
+			if(attr != null && attr.highQuality())
 				bitmap.compress(Bitmap.CompressFormat.PNG, 90, out);
 			else
 				bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
@@ -555,13 +578,19 @@ public class ImageManager implements ImageFileBasicOperation{
 		return id;
 	}
 	
-	public long setImageExist(String url, String attr) {
+	public long setImageExist(String url, ImageAttribute attr) {
 		long DBId = -1;
+		
+		String attrStr = null;
+		if(attr != null && attr.containsAttribute() == true) {
+			attrStr = attr.getStringAttr();
+		}
+		
 		Cursor cursor = mWritableDb.query(ImageTable.TABLE_NAME,
 				new String[] { ImageTable.COLUMN_ID },
 				ImageTable.COLUMN_IMAGE_URL + "=? AND "
 						+ ImageTable.COLUMN_ATTRIBUTE + "=?", new String[] {
-						url, TextUtils.isEmpty(attr) ? "NULL" : attr }, null,
+						url, attrStr==null?"NULL":attrStr }, null,
 				null, null);
 		if (cursor != null && cursor.getCount() > 0) {
 			cursor.moveToFirst();
@@ -570,8 +599,7 @@ public class ImageManager implements ImageFileBasicOperation{
 		} else {
 			ContentValues cv = new ContentValues();
 			cv.put(ImageTable.COLUMN_IMAGE_URL, url);
-			cv.put(ImageTable.COLUMN_ATTRIBUTE,
-					TextUtils.isEmpty(attr) ? "NULL" : attr);
+			cv.put(ImageTable.COLUMN_ATTRIBUTE, attrStr==null?"NULL":attrStr);
 			cv.put(ImageTable.COLUMN_ACCESS_TIME, Calendar.getInstance()
 					.getTime().toGMTString());
 			DBId = mWritableDb.insert(ImageTable.TABLE_NAME, "", cv);

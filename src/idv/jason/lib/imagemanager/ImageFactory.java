@@ -21,10 +21,13 @@ public class ImageFactory {
 		BaseImage image = null;
 		boolean isLocal = false;
 		boolean isDatabase = false;
+		boolean isLocalVideo = false;
 		if(url.contains(LocalImage.LOCAL_FILE_PREFIX))
 			isLocal = true;
 		else if(url.contains(MediaStoreImage.PREFIX))
 			isDatabase = true;
+		else if(url.contains(LocalVideoImage.PREFIX))
+			isLocalVideo = true;
 		if(isLocal) {
 			image = new LocalImage(context, url);
 			if(attr != null && attr.containsAttribute()) {
@@ -35,6 +38,9 @@ public class ImageFactory {
 		}
 		else if(isDatabase) {
 			image = new MediaStoreImage(context, url);
+		}
+		else if(isLocalVideo) {
+			image = new LocalVideoImage(url);
 		}
 		else if(url != null) {
 			image = new InternetImage(context, url);
