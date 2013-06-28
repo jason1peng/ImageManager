@@ -53,7 +53,7 @@ public class MediaStoreImage extends BaseImage{
     		cur.close();
     	}
     	
-    	if(orientation != 0) {
+    	if(orientation != 0 && orientation != -1) {
 	    	Matrix matrix = new Matrix();
 	    	matrix.postRotate(orientation);
 	    	
