@@ -46,10 +46,12 @@ public class MediaStoreImage extends BaseImage{
     			orientationColumn, MediaStore.Images.Media._ID + "=?", 
     			new String[] {Long.toString(mId)}, null);
     	int orientation = -1;
-    	if (cur != null && cur.moveToFirst()) {
-    	    orientation = cur.getInt(cur.getColumnIndex(orientationColumn[0]));
+    	if (cur != null) {
+    		if(cur.moveToFirst()) {
+    			orientation = cur.getInt(cur.getColumnIndex(orientationColumn[0]));
+    		}
+    		cur.close();
     	}
-    	cur.close();
     	
     	if(orientation != 0) {
 	    	Matrix matrix = new Matrix();
