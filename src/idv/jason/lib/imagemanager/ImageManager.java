@@ -11,6 +11,7 @@ import idv.jason.lib.imagemanager.tasks.ImageManagerThreadFactory;
 import idv.jason.lib.imagemanager.db.DatabaseHelper;
 import idv.jason.lib.imagemanager.db.ImageTable;
 import idv.jason.lib.imagemanager.util.LifoAsyncTask;
+import idv.jason.lib.imagemanager.util.LinkedBlockingStack;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -24,8 +25,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -60,12 +65,10 @@ public class ImageManager implements ImageFileBasicOperation{
 	private ImageFactory mFactory;
 	
 	public static final String THREAD_FILTERS = "filters_thread";
-	public static final String THREAD_MEDIASTORE = "mediastore_thread";
 	public static final String THREAD_LOCAL = "local_thread";
 	
-	private ExecutorService mFilterThreadExecutor;
-	private ExecutorService mMediaStoreThreadExecutor;
-	private ExecutorService mLocalThreadExecutor;
+	private HashMap<String, ExecutorService> mThreadMap;
+	
 	private DatabaseHelper mDbHelper;
 	private SQLiteDatabase mWritableDb;
 
@@ -75,11 +78,11 @@ public class ImageManager implements ImageFileBasicOperation{
 		mDbHelper = new DatabaseHelper(c);
 		mWritableDb = mDbHelper.getWritableDatabase();
 		
+		mThreadMap = new HashMap<String, ExecutorService>();
+		
 		mFactory = new ImageFactory();
 		mFactory.setImageBasicOperation(this);
-		mFilterThreadExecutor = Executors.newSingleThreadExecutor(new ImageManagerThreadFactory(THREAD_FILTERS));
-		mMediaStoreThreadExecutor = Executors.newFixedThreadPool(2, new ImageManagerThreadFactory(THREAD_MEDIASTORE));
-		mLocalThreadExecutor = Executors.newFixedThreadPool(3, new ImageManagerThreadFactory(THREAD_LOCAL));
+		
 		setDownloadPath(null);
 	}
 	
@@ -349,15 +352,43 @@ public class ImageManager implements ImageFileBasicOperation{
 			}
 			if(DEBUG_URL)
 				Log.v(TAG, "getProcess: id=" + id + " url=" + url.getDownloadUrl());
-			if(attr != null && attr.getFilter() != 0)
-				task.executeOnExecutor(mFilterThreadExecutor, null, null, null);
-			else if(url.isMediaStoreFile()) {
-				task.executeOnExecutor(mMediaStoreThreadExecutor, null, null, null);
+			if(attr != null && attr.getFilter() != 0) {
+				task.executeOnExecutor(getPropterExecuter(THREAD_FILTERS, false, 1), null, null, null);
 			} else if(url.isLocalFile()) {
-				task.executeOnExecutor(mLocalThreadExecutor, null, null, null);
+				task.executeOnExecutor(getPropterExecuter(THREAD_LOCAL, false, 3), null, null, null);
+			} else {
+				if(attr != null) {
+					if(attr.getQueueId() != null) {
+						task.executeOnExecutor(getPropterExecuter(attr.getQueueId(), true, attr.getThreadSize()), null, null, null);
+					} else {
+						task.executeOnExecutor(getPropterExecuter(attr.getStackId(), false, attr.getThreadSize()), null, null, null);
+					}
+				} else {
+					task.executeOnExecutor(LifoAsyncTask.LIFO_THREAD_POOL_EXECUTOR, null, null, null);
+				}
 			}
-			else
-				task.executeOnExecutor(LifoAsyncTask.LIFO_THREAD_POOL_EXECUTOR, null, null, null);
+		}
+	}
+	
+	private Executor getPropterExecuter(String id, boolean isQueue, int size) {
+		if(id.equals(ImageAttribute.DEFAULT_STACK_ID)) {
+			return LifoAsyncTask.LIFO_THREAD_POOL_EXECUTOR;
+		} else if(mThreadMap.containsKey(id)) {
+			return mThreadMap.get(id);
+		} else {
+			ExecutorService threadExecutor = null;
+			if(isQueue) {
+				if(size > 1) {
+					threadExecutor = Executors.newFixedThreadPool(size, new ImageManagerThreadFactory(id));
+				} else {
+					threadExecutor = Executors.newSingleThreadExecutor(new ImageManagerThreadFactory(id));
+				}
+			} else {
+				threadExecutor = new ThreadPoolExecutor(size, Integer.MAX_VALUE, 1,
+						TimeUnit.SECONDS, new LinkedBlockingStack<Runnable>(), new ImageManagerThreadFactory(id));
+			}
+			mThreadMap.put(id, threadExecutor);
+			return threadExecutor;
 		}
 	}
 

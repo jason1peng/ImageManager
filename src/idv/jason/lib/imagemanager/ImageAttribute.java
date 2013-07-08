@@ -5,6 +5,7 @@ import idv.jason.lib.imagemanager.ImageManager.ImageDoneCallback;
 import java.lang.ref.WeakReference;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
@@ -31,6 +32,13 @@ public class ImageAttribute {
 	
 	public ImageDoneCallback mCallback;
 	public Object mParam;
+	
+	// load strategy
+	public static final String DEFAULT_STACK_ID = "default";
+	private String mStackId = DEFAULT_STACK_ID; // default use stack
+	private String mQueueId = null;
+	private int mThreadSize = 3;
+	//
 	
 	public ImageAttribute() {
 		
@@ -227,6 +235,27 @@ public class ImageAttribute {
 		}
 	}
 	
+	public void setStackId(String stackId, int size) {
+		if(TextUtils.isEmpty(stackId)) {
+			stackId = DEFAULT_STACK_ID;
+		}
+		this.mStackId = stackId;
+		this.mQueueId = null;
+		this.mThreadSize = size;
+	}
+	
+	public void setQueueId(String queueId, int size) {
+		if(TextUtils.isEmpty(queueId)) {
+			mStackId = DEFAULT_STACK_ID;
+			this.mQueueId = null;
+		}
+		else {
+			this.mStackId = null;
+			this.mQueueId = queueId;
+			this.mThreadSize = size;
+		}
+	}
+	
 	public ImageView getView() {
 		ImageView view = null;
 		if(viewAttr != null && viewAttr.view != null) {
@@ -252,6 +281,18 @@ public class ImageAttribute {
 		if(viewAttr != null)
 			return viewAttr.loadFromThread;
 		return false;
+	}
+
+	public String getStackId() {
+		return mStackId;
+	}
+	
+	public String getQueueId() {
+		return mQueueId;
+	}
+	
+	public int getThreadSize() {
+		return mThreadSize;
 	}
 	
 	public void setMaxSizeEqualsScreenSize(Context context) {
