@@ -3,3 +3,5 @@ gen
 local.properties
 .pydevproject
 .settings
+build
+.gradle

@@ -1,0 +1,2 @@
+include 'PhotoProcessing'
+project(':PhotoProcessing').projectDir = new File('../PhotoProcessing/PhotoProcessing')
