@@ -13,9 +13,9 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/gen" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Android 4.2.2" jdkType="Android SDK" />
+    <orderEntry type="jdk" jdkName="Android 2.3.3 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="PhotoProcessing" />
+    <orderEntry type="module" module-name="PhotoProcessing" exported="" />
   </component>
 </module>
 
