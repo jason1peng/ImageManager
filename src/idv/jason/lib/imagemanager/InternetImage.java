@@ -46,7 +46,7 @@ public class InternetImage extends BaseImage {
 				
 				if(mHighQuality == false)
 					options.inPreferredConfig = Bitmap.Config.RGB_565;
-				options.inSampleSize = ImageUtil.calculateInSampleSize(options, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT);
+				options.inSampleSize = ImageUtil.calculateInSampleSize(options, 0, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT);
 			}
 			options.inDither = false;
 			mBitmap = BitmapFactory.decodeStream(

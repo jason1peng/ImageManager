@@ -246,11 +246,15 @@ public class ImageUtil {
 		return ImageUtil.extractThumbnail(bm, width, height);
 	}
 	
-	public static int calculateInSampleSize(BitmapFactory.Options options,
+	public static int calculateInSampleSize(BitmapFactory.Options options, int rotation,
 			int reqWidth, int reqHeight) {
 		// Raw height and width of image
-		final int height = options.outHeight;
-		final int width = options.outWidth;
+		int height = options.outHeight;
+		int width = options.outWidth;
+        if(rotation == 90 || rotation == 270) {
+            height = options.outWidth;
+            width = options.outHeight;
+        }
 		int inSampleSize = 1;
 
 		if (height > reqHeight || width > reqWidth) {
@@ -266,6 +270,8 @@ public class ImageUtil {
 			// a final image with both dimensions larger than or equal to the
 			// requested height and width.
 			inSampleSize = heightRatio < widthRatio ? heightRatio : widthRatio;
+            if(inSampleSize > 2 && inSampleSize < 8)
+                inSampleSize = 4;
 		}
 
 		return inSampleSize;

@@ -36,7 +36,9 @@ public class LocalImage extends BaseImage{
 		
 		if(mPath.contains(LOCAL_FILE_PREFIX))
 			mPath = mPath.substring(7);
-		
+
+        int rotation = rotationForImage(mPath);
+
         //Decode image size
         BitmapFactory.Options options = new BitmapFactory.Options();
         if(IMAGE_MAX_WIDTH != 0 && IMAGE_MAX_HEIGHT != 0) {
@@ -52,7 +54,7 @@ public class LocalImage extends BaseImage{
 				options.inPreferredConfig = Bitmap.Config.RGB_565;
 	        else
 	        	options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-	        options.inSampleSize = ImageUtil.calculateInSampleSize(options, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT);
+	        options.inSampleSize = ImageUtil.calculateInSampleSize(options, rotation, IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT);
 	        mBitmap = BitmapFactory.decodeFile(mPath, options);
         } else {
 	        options.inJustDecodeBounds = true;
@@ -68,7 +70,6 @@ public class LocalImage extends BaseImage{
         
         // Rotate to right direction
         Matrix matrix = new Matrix();
-		float rotation = rotationForImage(mPath);
 		if (rotation != 0f) {
 			matrix.preRotate(rotation);
 			if(mBitmap != null && rotation != 0f) {
@@ -96,7 +97,7 @@ public class LocalImage extends BaseImage{
 		return rotation;
 	}
 
-	public static float exifOrientationToDegrees(int exifOrientation) {
+	public static int exifOrientationToDegrees(int exifOrientation) {
 		if (exifOrientation == ExifInterface.ORIENTATION_ROTATE_90) {
 			return 90;
 		} else if (exifOrientation == ExifInterface.ORIENTATION_ROTATE_180) {
