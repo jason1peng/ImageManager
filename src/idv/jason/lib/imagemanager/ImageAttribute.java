@@ -1,5 +1,6 @@
 package idv.jason.lib.imagemanager;
 
+import idv.jason.lib.imagemanager.ImageManager.GetImageFailCallback;
 import idv.jason.lib.imagemanager.ImageManager.ImageDoneCallback;
 
 import java.lang.ref.WeakReference;
@@ -30,7 +31,8 @@ public class ImageAttribute {
 	
 	private boolean reflection = false;
 	
-	public ImageDoneCallback mCallback;
+	public ImageDoneCallback mCallback = null;
+	public GetImageFailCallback mFailCallback = null;
 	public Object mParam;
 	
 	// load strategy
@@ -48,6 +50,10 @@ public class ImageAttribute {
 		mCallback = callback;
 	}
 	
+	public ImageAttribute(GetImageFailCallback failCallback) {
+		mFailCallback = failCallback;
+	}
+	
 	public void setCallbackParam(Object param) {
 		mParam = param;
 	}
@@ -59,12 +65,13 @@ public class ImageAttribute {
 		}
 	}
 	
-	public ImageAttribute(ImageView view, ImageDoneCallback callback) {
+	public ImageAttribute(ImageView view, ImageDoneCallback callback, GetImageFailCallback failCallback) {
 		if(view != null) {
 			viewAttr = new ViewAttribute();
 			viewAttr.view = new WeakReference<ImageView>(view);
 		}
 		mCallback = callback;
+		mFailCallback = failCallback;
 	}
 	
 	public int getMaxWidth() {

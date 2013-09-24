@@ -259,6 +259,9 @@ public class ImageManager implements ImageFileBasicOperation{
 		if (attr != null) {
 			ImageView view = attr.getView();
 			updateView(view, attr, bitmap);
+			if (bitmap == null && attr.mFailCallback != null) {
+				attr.mFailCallback.getImageFail(attr.mParam);
+			}
 			if(attr.mCallback != null) {
 				attr.mCallback.imageDone(attr.mParam, bitmap);
 				attr.mCallback = null;
@@ -693,6 +696,10 @@ public class ImageManager implements ImageFileBasicOperation{
 
 	public interface ImageDoneCallback {
 		public void imageDone(Object id, Bitmap bitmap);
+	}
+	
+	public interface GetImageFailCallback {
+		public void getImageFail(Object arg0);
 	}
 
 	private static final int HARD_CACHE_CAPACITY = 10 * 1024 * 1024;
