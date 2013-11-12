@@ -5,3 +5,4 @@ local.properties
 .settings
 build
 .gradle
+.idea
