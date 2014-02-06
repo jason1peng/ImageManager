@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<module external.linked.project.path="$MODULE_DIR$" external.root.project.path="$MODULE_DIR$/../../POP_Android" external.system.id="GRADLE" type="JAVA_MODULE" version="4">
+<module external.linked.project.path="$MODULE_DIR$" external.root.project.path="$MODULE_DIR$/../../POP_Android" external.system.id="GRADLE" external.system.module.group="POP_Android" external.system.module.version="unspecified" type="JAVA_MODULE" version="4">
   <component name="FacetManager">
     <facet type="android" name="Android">
       <configuration>
@@ -54,7 +54,6 @@
       <sourceFolder url="file://$MODULE_DIR$/tests/resources" type="java-test-resource" />
       <excludeFolder url="file://$MODULE_DIR$/.git" />
       <excludeFolder url="file://$MODULE_DIR$/.gradle" />
-      <excludeFolder url="file://$MODULE_DIR$/.idea" />
       <excludeFolder url="file://$MODULE_DIR$/build/apk" />
       <excludeFolder url="file://$MODULE_DIR$/build/assets" />
       <excludeFolder url="file://$MODULE_DIR$/build/bundles" />
