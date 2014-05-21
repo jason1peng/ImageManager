@@ -5,6 +5,7 @@ import com.jason.lib.imagemanager.conn.HttpInvoker;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.text.TextUtils;
 
 public class InternetImage extends BaseImage {
 	public static final String TAG = InternetImage.class.getSimpleName();
@@ -59,4 +60,11 @@ public class InternetImage extends BaseImage {
 	public void setBitmap(Bitmap bm) {
 		mBitmap = bm;
 	}
+
+    public static boolean isInternetPath (String path) {
+        if(TextUtils.isEmpty(path)==false && path.contains("http")) {
+            return true;
+        }
+        return false;
+    }
 }

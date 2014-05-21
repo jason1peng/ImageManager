@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
+import android.text.TextUtils;
 
 public class LocalImage extends BaseImage{
 	private String mPath;
@@ -112,4 +113,11 @@ public class LocalImage extends BaseImage{
 	public void setBitmap(Bitmap bm) {
 		mBitmap = bm;
 	}
+
+    public static boolean isLocalImage(String url) {
+        if(TextUtils.isEmpty(url) == false && url.contains(LOCAL_FILE_PREFIX)) {
+            return true;
+        }
+        return false;
+    }
 }

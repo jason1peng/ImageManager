@@ -32,7 +32,7 @@ public class MediaStoreImage extends BaseImage{
 		return id;
 	}
 	
-	public Bitmap getBitmap() {
+	public Bitmap getBitmap() throws OutOfMemoryError{
 		if (mBitmap != null) {
 			return mBitmap;
 		}

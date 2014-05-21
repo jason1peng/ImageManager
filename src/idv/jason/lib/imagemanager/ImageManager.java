@@ -71,6 +71,7 @@ public class ImageManager implements ImageFileBasicOperation{
 	
 	private DatabaseHelper mDbHelper;
 	private SQLiteDatabase mWritableDb;
+    private static final int MAX_RETRY = 3;
 
 	private ImageManager(Context c) {
 		mContext = c;
@@ -163,38 +164,59 @@ public class ImageManager implements ImageFileBasicOperation{
 	public Bitmap getImageWithoutThread(String url, ImageAttribute attr, boolean loadBitmap) {
 		Bitmap bitmap = null;
 		String id = getImageId(url, attr);
-		
-		if(loadBitmap) {
-			if(id != null) {
-				bitmap = getBitmapFromCache(id, attr);
-			}
-			if(bitmap == null) {
-				if(DEBUG_CACHE)
-					Log.v(TAG, "download new");
-				bitmap = getBitmap(null, new UrlInfo(url), attr);
-			} else {
-				if(DEBUG_CACHE)
-					Log.v(TAG, "exist in file");
-			}
-		} else {
-			// just make sure bitmap exist
-			if( id != null && new File(mDownloadPath, id).exists() == true) {
-				if(DEBUG_CACHE)
-					Log.v(TAG, "exist in file");
-			} else {
-				if(DEBUG_CACHE)
-					Log.v(TAG, "download new");
-				
-				UrlInfo ui = new UrlInfo(url);
-				
-				if(ui.isInternetFile())
-					downloadRawBitmap(ui);
-				else
-					getBitmap(null, ui, attr);
-			}
-		}
+        int retry = 0;
+
+        for(retry=0; retry<MAX_RETRY && bitmap == null; ++retry) {
+            try {
+                if (loadBitmap) {
+                    if (id != null) {
+                        bitmap = getBitmapFromCache(id, attr);
+                    }
+                    if (bitmap == null) {
+                        if (DEBUG_CACHE)
+                            Log.v(TAG, "download new");
+                        bitmap = getBitmap(null, new UrlInfo(url), attr);
+                    } else {
+                        if (DEBUG_CACHE)
+                            Log.v(TAG, "exist in file");
+                    }
+                } else {
+                    // just make sure bitmap exist
+                    if (id != null && new File(mDownloadPath, id).exists() == true) {
+                        if (DEBUG_CACHE)
+                            Log.v(TAG, "exist in file");
+                    } else {
+                        if (DEBUG_CACHE)
+                            Log.v(TAG, "download new");
+
+                        UrlInfo ui = new UrlInfo(url);
+
+                        if (ui.isInternetFile())
+                            downloadRawBitmap(ui);
+                        else
+                            getBitmap(null, ui, attr);
+                    }
+                }
+            } catch (OutOfMemoryError e) {
+                Log.d(TAG, "get image fail, retry:" + retry);
+                handleOutOfMemory(retry, attr);
+                if(retry+1 == MAX_RETRY) {
+                    Log.e(TAG, "OutOfMemoryError", e);
+                }
+            }
+        }
 		return bitmap;
 	}
+
+    public String getImagePath(String url, ImageAttribute attr) {
+        String id = getImageId(url, attr);
+        File file = new File(mDownloadPath, id);
+        if( id != null && file.exists() == true) {
+            return file.getAbsolutePath();
+        }
+        return null;
+
+    }
 	
 	public Bitmap getLocalVideoThumbnailWithoutThread(String path, ImageAttribute attr, boolean loadBitmap) {
 		return getImageWithoutThread(LocalVideoImage.PREFIX + path, attr, loadBitmap);
@@ -263,7 +285,7 @@ public class ImageManager implements ImageFileBasicOperation{
 				attr.mFailCallback.getImageFail(attr.mParam);
 			}
 			if(attr.mCallback != null) {
-				attr.mCallback.imageDone(attr.mParam, bitmap);
+				attr.mCallback.imageDone(attr.mParam, bitmap, view);
 				attr.mCallback = null;
 			}
 		}
@@ -495,70 +517,88 @@ public class ImageManager implements ImageFileBasicOperation{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 	}
-	
+
 	private Bitmap getBitmap(String imageId, UrlInfo url, ImageAttribute attr) {
 		Bitmap bitmap = null;
-		try {
-			if(DEBUG)
-				Log.v(TAG, "getBitmap() cacheId="+imageId+" url="+url.getDownloadUrl());
-			if(imageId != null && url.isMediaStoreFile()==false) {
-				// downloaded before, just need load it from thread
-				bitmap = getBitmapFromCache(imageId, attr);
-				if(bitmap == null) {
-					Log.e(TAG, "image [" + imageId + "] file been deleted");
-					// if null means file been deleted from user, need process again
-					mWritableDb.delete(ImageTable.TABLE_NAME, ImageTable.COLUMN_ID + "=?", new String[] {imageId});
-				}
-			}
-			
-			if(imageId == null || bitmap==null) {
-				BaseImage image = mFactory.getImage(mContext, url.getDownloadUrl(), attr);
-				if(attr != null && attr.containsAttribute()) {
-					// trying to get image without any modify
-					String pureId = getImageId( url.getDownloadUrl(), null);
-					bitmap = getBitmapFromCache(pureId, attr);
-					if(bitmap != null) {
-						if(DEBUG_CACHE)
-							Log.v(TAG, "modify from origin");
-						image.setBitmap(bitmap);
-					} else {
-						if(DEBUG_CACHE)
-							Log.v(TAG, "no exist, download new");
-					}
-					image = mFactory.postProcessImage(mContext,  url.getDownloadUrl(), attr, image);
-				}
-				bitmap = image.getBitmap();
-				if(url.isMediaStoreFile()==false) {
-					// do not cache thumbnails come from MediaStore 
-					imageId = setBitmapToFile(bitmap, url.getUniquePath(), attr);
-					setBitmapToCache(bitmap, imageId);
-				}
-			}
-		} catch (OutOfMemoryError e) {
-			Log.e(TAG, "OutOfMemoryError", e);
-		}
+        for(int retry=0; retry<MAX_RETRY && bitmap == null; ++retry) {
+            try {
+                if (DEBUG)
+                    Log.v(TAG, "getBitmap() cacheId=" + imageId + " url=" + url.getDownloadUrl());
+                if (imageId != null && url.isMediaStoreFile() == false) {
+                    // downloaded before, just need load it from thread
+                    bitmap = getBitmapFromCache(imageId, attr);
+                    if (bitmap == null) {
+                        Log.e(TAG, "image [" + imageId + "] file been deleted");
+                        // if null means file been deleted from user, need process again
+                        mWritableDb.delete(ImageTable.TABLE_NAME, ImageTable.COLUMN_ID + "=?", new String[]{imageId});
+                    }
+                }
+
+                if (imageId == null || bitmap == null) {
+                    BaseImage image = mFactory.getImage(mContext, url.getDownloadUrl(), attr);
+                    if (attr != null && attr.containsAttribute()) {
+                        // trying to get image without any modify
+                        String pureId = getImageId(url.getDownloadUrl(), null);
+                        bitmap = getBitmapFromCache(pureId, attr);
+                        if (bitmap != null) {
+                            if (DEBUG_CACHE)
+                                Log.v(TAG, "modify from origin");
+                            image.setBitmap(bitmap);
+                        } else {
+                            if (DEBUG_CACHE)
+                                Log.v(TAG, "no exist, download new");
+                        }
+                        image = mFactory.postProcessImage(mContext, url.getDownloadUrl(), attr, image);
+                    }
+                    bitmap = image.getBitmap();
+                    if (url.isMediaStoreFile() == false) {
+                        // do not cache thumbnails come from MediaStore
+                        imageId = setBitmapToFile(bitmap, url.getUniquePath(), attr);
+                        setBitmapToCache(bitmap, imageId);
+                    }
+                }
+            } catch (OutOfMemoryError e) {
+                Log.d(TAG, "get image fail, retry:" + retry);
+                handleOutOfMemory(retry, attr);
+                if(retry+1 == MAX_RETRY) {
+                    Log.e(TAG, "OutOfMemoryError", e);
+                }
+            }
+        }
 		
 		return bitmap;
 	}
-	
+
+    private void handleOutOfMemory(int retry, ImageAttribute attr) {
+        if(attr != null) {
+            int width = attr.getMaxWidth();
+            int height = attr.getMaxHeight();
+            if(width == 0 || height == 0) {
+                width = 1024;
+                height = 1024;
+            }
+            if(retry == 0) {
+                attr.setHighQuality(false);
+            } else if(retry == 1) {
+                attr.setMaxSize(512, 512);
+            } else if(retry == 2) {
+                attr.setMaxSize(256, 256);
+            }
+        }
+    }
 	private Bitmap getBitmapFromMediaStore(UrlInfo url, ImageAttribute attr) {
 		MediaStoreImage image = new MediaStoreImage(mContext, url.getUniquePath());
-		try {
-			Bitmap bm = image.getBitmap();
-			if (bm != null) {
-				return bm;
-			} else {
-				Log.w(TAG, "get bitmap from MediaStore failed url="+url.getUniquePath());
-			}
-		} catch (OutOfMemoryError e) {
-			Log.e(TAG, "OutOfMemoryError", e);
-		}
+        Bitmap bm = image.getBitmap();
+        if (bm != null) {
+            return bm;
+        } else {
+            Log.w(TAG, "get bitmap from MediaStore failed url="+url.getUniquePath());
+        }
 		return null;
 	}
 
-	private Bitmap getBitmapFromCache(String cacheIndex, ImageAttribute attr) {
+	private Bitmap getBitmapFromCache(String cacheIndex, ImageAttribute attr) throws OutOfMemoryError{
 		if(TextUtils.isEmpty(cacheIndex))
 			return null;
 		
@@ -580,28 +620,26 @@ public class ImageManager implements ImageFileBasicOperation{
 		if (file.exists()) {
 			LocalImage image = null;
 			image = new LocalImage(mContext, file.getAbsolutePath());
-			if(attr != null && attr.getMaxHeight() != 0 && attr.getMaxWidth() != 0) {
-				image.setImaggMaxSize(attr.getMaxWidth(), attr.getMaxHeight());
-				image.setHighQuality(attr.highQuality());
-			}
-			try {
-				Bitmap bm = image.getBitmap();
-				if (bm != null) {
-					if (DEBUG_CACHE)
-						Log.v(TAG, "get bitmap from file cache: "+file.getAbsolutePath());
-					synchronized (sMemoryCache) {
-						sMemoryCache.put(cacheIndex, bm);
-					}
-					return bm;
-				}
-			} catch (OutOfMemoryError e) {
-				Log.e(TAG, "OutOfMemoryError", e);
-			}
+			if(attr != null) {
+                if (attr.getMaxHeight() != 0 && attr.getMaxWidth() != 0) {
+                    image.setImaggMaxSize(attr.getMaxWidth(), attr.getMaxHeight());
+                }
+                image.setHighQuality(attr.highQuality());
+            }
+            Bitmap bm = image.getBitmap();
+            if (bm != null) {
+                if (DEBUG_CACHE)
+                    Log.v(TAG, "get bitmap from file cache: "+file.getAbsolutePath());
+                synchronized (sMemoryCache) {
+                    sMemoryCache.put(cacheIndex, bm);
+                }
+                return bm;
+            }
 		}
 		return null;
 	}
 
-	private void setBitmapToCache(Bitmap bitmap, String cacheIndex) {
+	private void setBitmapToCache(Bitmap bitmap, String cacheIndex) throws OutOfMemoryError{
 		if(bitmap == null)
 			return;
 		if (DEBUG_CACHE) {
@@ -695,7 +733,7 @@ public class ImageManager implements ImageFileBasicOperation{
 	}	
 
 	public interface ImageDoneCallback {
-		public void imageDone(Object id, Bitmap bitmap);
+		public void imageDone(Object id, Bitmap bitmap, ImageView imageView);
 	}
 	
 	public interface GetImageFailCallback {

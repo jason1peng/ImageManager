@@ -22,7 +22,7 @@ public class ImageFactory {
 		boolean isLocal = false;
 		boolean isDatabase = false;
 		boolean isLocalVideo = false;
-		if(url.contains(LocalImage.LOCAL_FILE_PREFIX))
+		if(LocalImage.isLocalImage(url))
 			isLocal = true;
 		else if(url.contains(MediaStoreImage.PREFIX))
 			isDatabase = true;
@@ -80,6 +80,10 @@ public class ImageFactory {
 			if(attr.isReflection()) {
 				image = new ReflectionImage(image);
 			}
+
+            if(attr.getRotation() != 0) {
+                image = new RotateImage(image, attr.getRotation());
+            }
 		}
 		return image;
 	}

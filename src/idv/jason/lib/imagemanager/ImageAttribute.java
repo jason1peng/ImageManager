@@ -23,12 +23,13 @@ public class ImageAttribute {
 	
 	private int blurRadious = 0;
 	
-	private boolean highQuality = false;
+	private boolean highQuality = true;
 	
 	private boolean defaultAttribute = true;
 	
 	private int filterPhoto = 0;
-	
+    private int degree = 0;
+
 	private boolean reflection = false;
 	
 	public ImageDoneCallback mCallback = null;
@@ -109,7 +110,11 @@ public class ImageAttribute {
 	public boolean reflection() {
 		return reflection;
 	}
-	
+
+    public int getRotation() {
+        return degree;
+    }
+
 	public void setMaxSize(int width, int height) {
 		maxWidth = width;
 		maxHeight = height;
@@ -152,7 +157,12 @@ public class ImageAttribute {
 		filterPhoto = filter;
 		defaultAttribute = false;
 	}
-	
+
+    public void setRotation(int degree) {
+        this.degree = degree;
+        defaultAttribute = false;
+    }
+
 	public ImageAttribute(ImageAttribute attr, ImageView view) {
 		this.maxHeight = attr.maxHeight;
 		this.maxWidth = attr.maxWidth;
@@ -162,7 +172,8 @@ public class ImageAttribute {
 		this.blendResId = attr.blendResId;
 		this.highQuality = attr.highQuality;
 		this.blurRadious = attr.blurRadious;
-		
+        this.degree = attr.degree;
+
 		this.filterPhoto = attr.filterPhoto;
 		if(view != null) {
 			viewAttr = new ViewAttribute();
@@ -184,7 +195,8 @@ public class ImageAttribute {
 
 		builder.append(filterPhoto);
 		builder.append(reflection);
-		
+        builder.append(degree);
+
 		return builder.toString();
 	}
 	
